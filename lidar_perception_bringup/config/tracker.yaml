@@ -1,0 +1,6 @@
+tracking_node:
+  ros__parameters:
+    detection_topic: "/detection/objects"
+    output_topic: "/tracking/objects"
+    gnss_topic: "/digital_bridge/gnss/pose"
+    tracker_config_path: "tracker/config/multi_object_tracker.yaml"

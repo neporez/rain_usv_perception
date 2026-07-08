@@ -1,0 +1,6 @@
+marker_publisher_node:
+  ros__parameters:
+    tracking_topic: "/tracking/objects"
+    output_topic: "/viz/tracks"
+    detection_topic: "/detection/objects"
+    detection_output_topic: "/viz/detections"
