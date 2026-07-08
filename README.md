@@ -70,7 +70,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 |---|---|
 | `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`, `ckpt_path`, `score_threshold` |
 | `tracking.yaml` | `detection_topic`, `gnss_topic`, `tracker_config_path` |
-| `viz.yaml` | `tracking_topic`, `detection_topic`, `marker_lifetime_sec` |
+| `viz.yaml` | `tracking_topic`, `detection_topic` |
 
 ---
 
