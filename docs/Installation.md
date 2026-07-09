@@ -48,7 +48,7 @@ conda activate voxelnext_ros_jazzy
 mamba install -c conda-forge colcon-core colcon-common-extensions
 ```
 
-**주의:** 이후 모든 `pip install` / `colcon build` / `ros2 run` / `ros2 launch` 명령은
+**주의:** 이후 모든 `pip install` / `colcon build` / `ros2 run` / `ros2 launch` / `source install/setup.bash` 명령은
 `voxelnext_ros_jazzy` 환경이 활성화된 상태에서 실행합니다.
 
 ### 1-5. 활성화 함수 등록
@@ -57,7 +57,7 @@ mamba install -c conda-forge colcon-core colcon-common-extensions
 아래 함수를 추가해두면 편리합니다.
 
 ```bash
-conda_jazzy() {
+voxelnext_ros_jazzy() {
 	conda activate voxelnext_ros_jazzy
 	source $CONDA_PREFIX/setup.bash
 
@@ -76,7 +76,7 @@ source ~/.bashrc
 활성화합니다.
 
 ```bash
-conda_jazzy
+voxelnext_ros_jazzy
 ```
 
 ---
@@ -98,7 +98,9 @@ git clone https://github.com/neporez/OpenPCDet.git
 ```bash
 pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
   --index-url https://download.pytorch.org/whl/cu126
+
 pip install spconv-cu126
+
 pip install numpy==2.1.3 llvmlite==0.44.0 numba==0.61.0 tensorboardX==2.6.5 \
   easydict==1.13 scikit-image==0.25.2 tqdm==4.67.3 SharedArray==3.2.4 \
   opencv-python==4.13.0 pyquaternion==0.9.9 open3d==0.19.0
@@ -138,7 +140,7 @@ git clone https://github.com/neporez/rain_usv_perception.git
 
 ```bash
 cd ~/ros2_ws
-conda_jazzy
+voxelnext_ros_jazzy
 colcon build --symlink-install
 source install/setup.bash
 ```

@@ -49,7 +49,7 @@ PointCloud2 (LiDAR, 10Hz)
 ## Usage
 
 ```bash
-conda_jazzy
+voxelnext_ros_jazzy
 source ~/ros2_ws/install/setup.bash
 
 # Detection 노드만 실행
