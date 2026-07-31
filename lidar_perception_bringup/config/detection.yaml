@@ -2,7 +2,7 @@ detection_node:
   ros__parameters:
     pointcloud_topic: "/dev/lidar/points"
     pointcloud_qos_reliability: "best_effort"
-    model_config_path: "cfgs/kriso_models/cbgs_voxel01_voxelnext.yaml"
+    model_config_path: "cfgs/kriso_models/cbgs_voxel04_voxelnext.yaml"
     ckpt_path: "cfgs/ckpt/voxelnext_epoch_160.pth"
     score_threshold: 0.3
     output_topic: "/detection/objects"

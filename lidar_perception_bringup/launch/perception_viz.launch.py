@@ -29,7 +29,7 @@ def generate_launch_description():
         package='rviz2',
         executable='rviz2',
         name='rviz2',
-        output='screen',
+        output='log',
         arguments=['-d', rviz_config],
     )
 
