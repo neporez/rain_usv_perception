@@ -42,7 +42,7 @@ class TrackingNode(Node):
 
     def on_detections(self, msg: Object3DArray):
         if not self.pose_cache.has_fix():
-            self.get_logger().warn("No GNSS fix yet, skipping frame.")
+            self.get_logger().warning("No GNSS fix yet, skipping frame.")
             return
 
         boxes, scores, class_ids, class_names = self.object3d_array_to_boxes(msg)
