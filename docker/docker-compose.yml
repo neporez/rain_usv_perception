@@ -1,0 +1,18 @@
+services:
+  lidar_perception:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rain_usv_perception
+    container_name: lidar_perception
+    network_mode: host
+    ipc: host
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
