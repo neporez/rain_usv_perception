@@ -1,0 +1,11 @@
+uint32 scanner_range_m
+bool use_fast_scan
+uint32 scanner_rpm
+bool auto_gain
+uint8 us_gain
+uint32 antenna_height
+int32 antenna_offset_x
+int32 antenna_offset_y
+bool run_from_file
+---
+int32 result

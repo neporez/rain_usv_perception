@@ -1,0 +1,4 @@
+builtin_interfaces/Time stamp
+float64 set_range
+float64 pixel_range_mm
+float64 spoke_range_mm
