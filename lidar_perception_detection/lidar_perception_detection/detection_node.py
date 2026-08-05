@@ -4,7 +4,7 @@ from sensor_msgs.msg import PointCloud2
 
 from lidar_perception_interfaces.msg import Object3D, Object3DArray
 from lidar_perception_detection.detection_utils import resolve_qos, parse_pointcloud2
-from lidar_perception_detection.model_adapter import VoxelNeXtInferencer
+from lidar_perception_detection.model_adapter import ModelInferencer
 
 class DetectionNode(Node):
     def __init__(self):
@@ -25,7 +25,7 @@ class DetectionNode(Node):
         output_topic = self.get_parameter("output_topic").value
 
         self.get_logger().info("Loading model...")
-        self.inferencer = VoxelNeXtInferencer(
+        self.inferencer = ModelInferencer(
             cfg_path=model_config_path,
             ckpt_path=ckpt_path,
             score_thresh=self.score_threshold

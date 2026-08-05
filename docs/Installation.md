@@ -26,16 +26,17 @@ RoboStack에서 제공하는 ROS2 패키지를 받을 수 있도록 채널을 �
 ```bash
 conda config --add channels conda-forge
 conda config --add channels robostack-jazzy
+conda config --remove channels defaults
 conda config --set channel_priority strict
 ```
 
 ### 1-3. ROS2 Jazzy 환경 생성
 
-`voxelnext_ros_jazzy`라는 이름의 conda 환경을 생성하고, 이 환경 안에
+`lidar_perception_ros_jazzy`라는 이름의 conda 환경을 생성하고, 이 환경 안에
 ROS2 Jazzy(Desktop)와 Python 3.12를 함께 설치합니다.
 
 ```bash
-mamba create -n voxelnext_ros_jazzy ros-jazzy-desktop python=3.12
+mamba create -n lidar_perception_ros_jazzy ros-jazzy-desktop python=3.12
 ```
 
 ### 1-4. colcon 설치
@@ -44,12 +45,12 @@ mamba create -n voxelnext_ros_jazzy ros-jazzy-desktop python=3.12
 **같은 conda 환경 안에** 설치합니다.
 
 ```bash
-conda activate voxelnext_ros_jazzy
+conda activate lidar_perception_ros_jazzy
 mamba install -c conda-forge colcon-core colcon-common-extensions
 ```
 
 **주의:** 이후 모든 `pip install` / `colcon build` / `ros2 run` / `ros2 launch` / `source install/setup.bash` 명령은
-`voxelnext_ros_jazzy` 환경이 활성화된 상태에서 실행합니다.
+`lidar_perception_ros_jazzy` 환경이 활성화된 상태에서 실행합니다.
 
 ### 1-5. 활성화 함수 등록
 
@@ -57,8 +58,8 @@ mamba install -c conda-forge colcon-core colcon-common-extensions
 아래 함수를 추가해두면 편리합니다.
 
 ```bash
-voxelnext_ros_jazzy() {
-	conda activate voxelnext_ros_jazzy
+lidar_perception_ros_jazzy() {
+	conda activate lidar_perception_ros_jazzy
 	source $CONDA_PREFIX/setup.bash
 
 	autoload -U +X compinit && compinit
@@ -72,11 +73,11 @@ voxelnext_ros_jazzy() {
 source ~/.bashrc
 ```
 
-이후로는 `conda activate voxelnext_ros_jazzy` 대신 아래 명령으로 환경을
+이후로는 `conda activate lidar_perception_ros_jazzy` 대신 아래 명령으로 환경을
 활성화합니다.
 
 ```bash
-voxelnext_ros_jazzy
+lidar_perception_ros_jazzy
 ```
 
 ---
@@ -140,7 +141,7 @@ git clone https://github.com/neporez/rain_usv_perception.git
 
 ```bash
 cd ~/ros2_ws
-voxelnext_ros_jazzy
+lidar_perception_ros_jazzy
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -157,6 +158,3 @@ source install/setup.bash
 `detection_node`가 정상 동작합니다.
 
 ---
-
-<!-- 이후 섹션: 패키지 설명(bringup / detection / tracking / interfaces / viz),
-     tracker 라이브러리 설정, ckpt 다운로드 등은 추후 작성 -->

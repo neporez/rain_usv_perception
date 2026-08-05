@@ -1,9 +1,3 @@
-"""
-model_adapter.py
-
-ROS2 detection_node가 아는 건 이 파일의 VoxelNeXtInferencer 클래스뿐이다.
-pcdet 관련 import/로직은 전부 이 파일 안에서만 다룬다.
-"""
 import numpy as np
 import torch
 import yaml
@@ -38,7 +32,7 @@ class _InferenceDataset(DatasetTemplate):
         raise NotImplementedError
 
 
-class VoxelNeXtInferencer:
+class ModelInferencer:
     def __init__(self, cfg_path: str, ckpt_path: str, score_thresh: float, device: str = "cuda"):
         self.device = device
         self.score_thresh = score_thresh

@@ -1,7 +1,7 @@
 CLASS_NAMES: ['boat']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/kriso_dataset_no_intensity.yaml
+    _BASE_CONFIG_: cfgs/dataset_configs/kriso_dataset.yaml
 
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
@@ -14,7 +14,7 @@ DATA_CONFIG:
           }
 
         - NAME: transform_points_to_voxels
-          VOXEL_SIZE: [0.1, 0.1, 0.2]
+          VOXEL_SIZE: [0.8, 0.8, 1.25]
           MAX_POINTS_PER_VOXEL: 20
           MAX_NUMBER_OF_VOXELS: {
             'train': 120000,
@@ -71,7 +71,7 @@ MODEL:
             MAX_OBJ_PER_SAMPLE: 500
             NMS_CONFIG:
                 NMS_TYPE: nms_gpu
-                NMS_THRESH: 0.2
+                NMS_THRESH: 0.05
                 NMS_PRE_MAXSIZE: 1000
                 NMS_POST_MAXSIZE: 83
 
@@ -87,12 +87,12 @@ OPTIMIZATION:
     NUM_EPOCHS: 160
 
     OPTIMIZER: adam_onecycle
-    LR: 0.0004
-    WEIGHT_DECAY: 0.02
+    LR: 0.003
+    WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9
 
     MOMS: [0.95, 0.85]
-    PCT_START: 0.15
+    PCT_START: 0.4
     DIV_FACTOR: 10
     DECAY_STEP_LIST: [35, 45]
     LR_DECAY: 0.1

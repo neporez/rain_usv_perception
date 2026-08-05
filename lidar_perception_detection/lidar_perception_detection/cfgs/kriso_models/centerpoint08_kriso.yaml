@@ -1,8 +1,8 @@
 CLASS_NAMES: ['boat']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/kriso_dataset_no_intensity_synthetic.yaml
-
+    _BASE_CONFIG_: cfgs/dataset_configs/kriso_dataset.yaml
+    POINT_CLOUD_RANGE: [-204.8, -204.8, -25, 204.8, 204.8, 25]
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True
@@ -14,7 +14,7 @@ DATA_CONFIG:
           }
 
         - NAME: transform_points_to_voxels
-          VOXEL_SIZE: [0.1, 0.1, 0.2]
+          VOXEL_SIZE: [0.8, 0.8, 1.25]
           MAX_POINTS_PER_VOXEL: 20
           MAX_NUMBER_OF_VOXELS: {
             'train': 120000,
@@ -22,27 +22,38 @@ DATA_CONFIG:
           }
 
 MODEL:
-    NAME: VoxelNeXt
+    NAME: CenterPoint
 
     VFE:
         NAME: MeanVFE
 
     BACKBONE_3D:
-        NAME: VoxelResBackBone8xVoxelNeXt
+        NAME: VoxelResBackBone8x
+
+    MAP_TO_BEV:
+        NAME: HeightCompression
+        NUM_BEV_FEATURES: 256
+
+    BACKBONE_2D:
+        NAME: BaseBEVBackbone
+
+        LAYER_NUMS: [5, 5]
+        LAYER_STRIDES: [1, 2]
+        NUM_FILTERS: [128, 256]
+        UPSAMPLE_STRIDES: [1, 2]
+        NUM_UPSAMPLE_FILTERS: [256, 256]
 
     DENSE_HEAD:
-        NAME: VoxelNeXtHead
+        NAME: CenterHead
         CLASS_AGNOSTIC: False
-        INPUT_FEATURES: 128
 
         CLASS_NAMES_EACH_HEAD: [
-            ['boat'],
+            ['boat']
         ]
 
-        KERNEL_SIZE_HEAD: 1
-        SHARED_CONV_CHANNEL: 128
-        USE_BIAS_BEFORE_NORM: True
-        NUM_HM_CONV: 2
+        SHARED_CONV_CHANNEL: 64
+        USE_BIAS_BEFORE_NORM: True  # TODO
+        NUM_HM_CONV: 2  # TODO
         SEPARATE_HEAD_CFG:
             HEAD_ORDER: ['center', 'center_z', 'dim', 'rot']
             HEAD_DICT: {
@@ -57,34 +68,50 @@ MODEL:
             NUM_MAX_OBJS: 500
             GAUSSIAN_OVERLAP: 0.1
             MIN_RADIUS: 2
+            DENSE_REG: 1
 
         LOSS_CONFIG:
             LOSS_WEIGHTS: {
                 'cls_weight': 1.0,
-                'loc_weight': 0.25,
-                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2]
+                'loc_weight': 1.0,
+                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
             }
-
         POST_PROCESSING:
             SCORE_THRESH: 0.1
             POST_CENTER_LIMIT_RANGE: [-200, -200, -20, 200, 200, 20]
             MAX_OBJ_PER_SAMPLE: 500
+            OUTPUT_RAW_SCORE: False
             NMS_CONFIG:
+                MULTI_CLASSES_NMS: False
                 NMS_TYPE: nms_gpu
-                NMS_THRESH: 0.2
+                NMS_THRESH: 0.05
                 NMS_PRE_MAXSIZE: 1000
                 NMS_POST_MAXSIZE: 83
 
+            RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
+
+            EVAL_METRIC: once
+
     POST_PROCESSING:
+        SCORE_THRESH: 0.1
+        POST_CENTER_LIMIT_RANGE: [-200, -200, -20, 200, 200, 20]
+        MAX_OBJ_PER_SAMPLE: 500
+        OUTPUT_RAW_SCORE: False
+        NMS_CONFIG:
+            MULTI_CLASSES_NMS: False
+            NMS_TYPE: nms_gpu
+            NMS_THRESH: 0.05
+            NMS_PRE_MAXSIZE: 1000
+            NMS_POST_MAXSIZE: 83
+
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
 
         EVAL_METRIC: once
-
-
+        
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 8
-    NUM_EPOCHS: 80
+    BATCH_SIZE_PER_GPU: 1
+    NUM_EPOCHS: 160
 
     OPTIMIZER: adam_onecycle
     LR: 0.003
@@ -101,4 +128,4 @@ OPTIMIZATION:
     LR_WARMUP: False
     WARMUP_EPOCH: 1
 
-    GRAD_NORM_CLIP: 10
+    GRAD_NORM_CLIP: 35
