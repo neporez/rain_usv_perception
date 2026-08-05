@@ -53,7 +53,7 @@ RUN pip3 install \
     numpy==2.4.6 llvmlite==0.48.0 numba==0.66.0 tensorboardX==2.6.5 \
     easydict==1.13 scikit-image==0.25.2 tqdm==4.67.3 SharedArray==3.2.4 \
     opencv-python pyquaternion \
-    --break-system-packages
+    --break-system-packages --ignore-installed
 
 # -----------------------------------------------------------
 # 6. GPU 아키텍처 타겟 명시 (필수)
@@ -63,6 +63,7 @@ RUN pip3 install \
 #   sm_89 = RTX 4090 (Ada Lovelace)
 # -----------------------------------------------------------
 ENV TORCH_CUDA_ARCH_LIST="7.5;8.9"
+ENV CUMM_CUDA_ARCH_LIST="7.5;8.9"
 
 # -----------------------------------------------------------
 # 7. cumm 빌드
