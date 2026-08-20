@@ -51,8 +51,8 @@ RUN pip3 install torch==2.12.0 torchvision==0.27.0 \
 # -----------------------------------------------------------
 RUN pip3 install \
     numpy==2.4.6 llvmlite==0.48.0 numba==0.66.0 tensorboardX==2.6.5 \
-    easydict==1.13 scikit-image==0.25.2 tqdm==4.67.3 SharedArray==3.2.4 \
-    opencv-python pyquaternion \
+    easydict==1.13 scikit-image tqdm==4.67.3 SharedArray==3.2.4 \
+    opencv-python pyquaternion scikit-image \
     --break-system-packages --ignore-installed
 
 # -----------------------------------------------------------
