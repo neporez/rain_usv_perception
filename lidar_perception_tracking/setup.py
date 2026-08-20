@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'tracking_node = lidar_perception_tracking.tracking_node:main',
+            'lidar_tracking_node = lidar_perception_tracking.tracking_node:main',
         ],
     },
 )

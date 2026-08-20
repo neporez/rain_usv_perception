@@ -1,4 +1,4 @@
-detection_node:
+lidar_detection_node:
   ros__parameters:
     pointcloud_topic: "/dev/lidar/points"
     pointcloud_qos_reliability: "best_effort"

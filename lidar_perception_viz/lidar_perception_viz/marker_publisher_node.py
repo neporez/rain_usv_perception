@@ -21,10 +21,10 @@ class MarkerPublisherNode(Node):
     def __init__(self):
         super().__init__("marker_publisher_node")
 
-        self.declare_parameter("tracking_topic", "/tracking/objects")
+        self.declare_parameter("tracking_viz_topic", "/tracking/objects_viz")
         self.declare_parameter("output_topic", "/viz/tracks")
 
-        tracking_topic = self.get_parameter("tracking_topic").value
+        tracking_topic = self.get_parameter("tracking_viz_topic").value
         output_topic = self.get_parameter("output_topic").value
 
         self._prev_track_ids = set()

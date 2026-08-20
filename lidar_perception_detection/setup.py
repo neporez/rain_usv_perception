@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'detection_node = lidar_perception_detection.detection_node:main',
+            'lidar_detection_node = lidar_perception_detection.detection_node:main',
         ],
     },
 )

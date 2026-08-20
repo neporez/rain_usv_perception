@@ -8,7 +8,7 @@ from lidar_perception_detection.model_adapter import ModelInferencer
 
 class DetectionNode(Node):
     def __init__(self):
-        super().__init__("detection_node")
+        super().__init__("lidar_detection_node")
 
         self.declare_parameter("pointcloud_topic", "/dev/lidar/points")
         self.declare_parameter("pointcloud_qos_reliability", "best_effort")

@@ -13,15 +13,15 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='lidar_perception_detection',
-            executable='detection_node',
-            name='detection_node',
+            executable='lidar_detection_node',
+            name='lidar_detection_node',
             output='screen',
             parameters=[detection_config],
         ),
         Node(
             package='lidar_perception_tracking',
-            executable='tracking_node',
-            name='tracking_node',
+            executable='lidar_tracking_node',
+            name='lidar_tracking_node',
             output='screen',
             parameters=[tracking_config],
         ),

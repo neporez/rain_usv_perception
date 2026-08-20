@@ -8,6 +8,7 @@ from lidar_perception_interfaces.msg import (
     TrackedObject3D,
     TrackedObject3DArray,
 )
+from detect_msgs.msg import ObjectsDetected, InfoDetectedObject
 from lidar_perception_tracking.pose_cache import PoseCache
 from lidar_perception_tracking.tracker_adapter import TrackerAdapter
 
@@ -17,12 +18,14 @@ class TrackingNode(Node):
         super().__init__("tracking_node")
 
         self.declare_parameter("detection_topic", "/detection/objects")
-        self.declare_parameter("output_topic", "/tracking/objects")
+        self.declare_parameter("output_topic", "/alg1/dl_pst_detection")
+        self.declare_parameter("viz_output_topic", "/tracking/objects_viz")
         self.declare_parameter("gnss_topic", "/digital_bridge/gnss/pose")
         self.declare_parameter("tracker_config_path", "tracker/config/multi_object_tracker.yaml")
 
         detection_topic = self.get_parameter("detection_topic").value
         output_topic = self.get_parameter("output_topic").value
+        viz_output_topic = self.get_parameter("viz_output_topic").value
         gnss_topic = self.get_parameter("gnss_topic").value
         tracker_config_path = self.get_parameter("tracker_config_path").value
 
@@ -35,7 +38,11 @@ class TrackingNode(Node):
         self.detection_sub = self.create_subscription(
             Object3DArray, detection_topic, self.on_detections, 10
         )
-        self.pub = self.create_publisher(TrackedObject3DArray, output_topic, 10)
+
+        # 트래커 출력 (detect_msgs 포맷)
+        self.pub = self.create_publisher(ObjectsDetected, output_topic, 10)
+        # 시각화용 출력 (기존 TrackedObject3DArray 포맷)
+        self.pub_viz = self.create_publisher(TrackedObject3DArray, viz_output_topic, 10)
 
     def on_gnss(self, msg: Pose):
         self.pose_cache.update(msg)
@@ -56,28 +63,67 @@ class TrackingNode(Node):
             boxes, scores, class_ids, class_names, pose_matrix, query_time
         )
 
-        out_msg = TrackedObject3DArray()
+        # --- 시각화용 메시지 ---
+        viz_msg = TrackedObject3DArray()
+        viz_msg.header = msg.header
+
+        # --- 트래커 출력 메시지 ---
+        out_msg = ObjectsDetected()
         out_msg.header = msg.header
+        out_msg.number = len(tracked)
 
         for t in tracked:
-            obj = TrackedObject3D()
+            viz_obj = TrackedObject3D()
 
-            obj.detection.center.x, obj.detection.center.y, obj.detection.center.z = t["local_center"]
-            obj.detection.size.x, obj.detection.size.y, obj.detection.size.z = t["size"]
-            obj.detection.yaw = t["local_yaw"]
-            obj.detection.class_id = t["class_id"]
-            obj.detection.class_name = t["class_name"]
-            obj.detection.score = t["score"]
+            viz_obj.detection.center.x, viz_obj.detection.center.y, viz_obj.detection.center.z = t["local_center"]
+            viz_obj.detection.size.x, viz_obj.detection.size.y, viz_obj.detection.size.z = t["size"]
+            viz_obj.detection.yaw = t["local_yaw"]
+            viz_obj.detection.class_id = t["class_id"]
+            viz_obj.detection.class_name = t["class_name"]
+            viz_obj.detection.score = t["score"]
 
-            obj.track_id = t["track_id"]
-            obj.velocity.x, obj.velocity.y, obj.velocity.z = t["velocity"]
+            viz_obj.track_id = t["track_id"]
+            viz_obj.velocity.x, viz_obj.velocity.y, viz_obj.velocity.z = t["velocity"]
 
-            obj.global_position.x, obj.global_position.y, obj.global_position.z = t["global_position"]
-            obj.global_yaw = t["global_yaw"]
+            viz_obj.global_position.x, viz_obj.global_position.y, viz_obj.global_position.z = t["global_position"]
+            viz_obj.global_yaw = t["global_yaw"]
 
-            out_msg.objects.append(obj)
+            viz_msg.objects.append(viz_obj)
+
+            # --- 트래커 출력 채우기 ---
+            lx, ly, lz = t["local_center"]
+            sx, sy, sz = t["size"]
+            vx, vy, vz = t["velocity"]
+
+            obj = InfoDetectedObject()
+            obj.id = t["track_id"]
+            obj.target_label = t["class_id"]
+            obj.score = t["score"]
+
+            obj.x = int(lx)
+            obj.y = int(ly)
+            obj.w = int(sx)
+            obj.h = int(sy)
+
+            obj.range = float(np.hypot(lx, ly))
+            obj.theta = float(np.arctan2(ly, lx))
+
+            obj.speed = float(np.hypot(vx, vy))
+            obj.heading = float(t["local_yaw"])
+
+            obj.x_covariances = 0.0
+            obj.y_covariances = 0.0
+            obj.w_covariances = 0.0
+            obj.h_covariances = 0.0
+            obj.range_covariances = 0.0
+            obj.theta_covariances = 0.0
+            obj.speed_covariances = 0.0
+            obj.heading_covariances = 0.0
+
+            out_msg.d_object.append(obj)
 
         self.pub.publish(out_msg)
+        self.pub_viz.publish(viz_msg)
 
     def object3d_array_to_boxes(self, msg: Object3DArray):
         boxes = []
