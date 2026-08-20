@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: rain_usv_perception
-    container_name: lidar_perception
+    image: musv_lidar
+    container_name: musv_lidar
     network_mode: host
     ipc: host
     stdin_open: true
