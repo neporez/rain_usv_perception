@@ -1,5 +1,5 @@
 services:
-  lidar_perception:
+  musv_lidar:
     build:
       context: .
       dockerfile: Dockerfile
