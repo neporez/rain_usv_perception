@@ -13,7 +13,7 @@ class DetectionNode(Node):
         self.declare_parameter("pointcloud_topic", "/dev/lidar/points")
         self.declare_parameter("pointcloud_qos_reliability", "best_effort")
         self.declare_parameter("model_config_path", "cfgs/kriso_models/kriso_voxelnext_deploy.yaml")
-        self.declare_parameter("ckpt_path", "cfgs/ckpt/voxelnext_kriso_v4_real_epoch_80.pth")
+        self.declare_parameter("ckpt_path", "cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth")
         self.declare_parameter("score_threshold", 0.3)
         self.declare_parameter("output_topic", "/detection/objects")
 

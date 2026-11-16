@@ -165,7 +165,7 @@ venv 폴더를 워크스페이스 안에 만들었다면 그 폴더에도 `COLCO
   크기·모델 구조가 같아야 하며, 체크포인트를 바꿀 때 함께 확인합니다.
 - 체크포인트(`.pth`, 약 90 MB)는 git에 없습니다. 아래 경로에 둡니다.
   ```
-  lidar_perception_detection/lidar_perception_detection/cfgs/ckpt/voxelnext_kriso_v4_real_epoch_80.pth
+  lidar_perception_detection/lidar_perception_detection/cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth
   ```
   파일 이름이 다르면 `lidar_perception_bringup/config/detection.yaml`의 `ckpt_path`를 맞춥니다.
 - 입력 PointCloud2에는 `x`, `y`, `z`, `intensity` 필드가 있어야 하며(Ouster 기본 출력), 모델은 x, y, z만 사용합니다.
