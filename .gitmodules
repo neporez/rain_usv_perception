@@ -1,0 +1,6 @@
+[submodule "third_party/tracker_task"]
+	path = third_party/tracker_task
+	url = https://github.com/taekim26-eng/tracker_task.git
+[submodule "third_party/OpenPCDet"]
+	path = third_party/OpenPCDet
+	url = https://github.com/neporez/OpenPCDet.git

@@ -93,16 +93,16 @@ RUN rm -rf /spconv/spconv/build /cumm/cumm/build
 # -----------------------------------------------------------
 # 9. OpenPCDet 설치 (KRISO 커스텀 fork)
 # -----------------------------------------------------------
-RUN git clone https://github.com/neporez/OpenPCDet && \
-    cd OpenPCDet && \
+# OpenPCDet and the tracker are git submodules of rain_usv_perception (third_party/) -> clone --recursive
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/src
+RUN git clone --recursive -b ros-lyrical https://github.com/neporez/rain_usv_perception.git && \
+    cd rain_usv_perception/third_party/OpenPCDet && \
     pip3 install -e . --no-build-isolation --break-system-packages
 
 # -----------------------------------------------------------
 # 10. rain_usv_perception ROS2 워크스페이스
 # -----------------------------------------------------------
-RUN mkdir -p /ros2_ws/src
-WORKDIR /ros2_ws/src
-RUN git clone -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
 
 # 체크포인트(.pth)는 git에 없음 - 아래 중 하나로 반드시 추가할 것
 #   (a) docker/checkpoints/ 에 .pth 넣고 COPY로 포함 (아래 주석 해제)

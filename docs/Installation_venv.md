@@ -133,21 +133,31 @@ rm -rf ~/spconv/spconv/build ~/cumm/cumm/build
 python -c "import spconv.pytorch as s; print('spconv ok')"   # 첫 import 때 JIT 컴파일 (수 분 소요)
 ```
 
-## 7. OpenPCDet (KRISO fork)
+## 7. 저장소 clone (submodule 포함) 및 OpenPCDet 설치
+
+OpenPCDet(KRISO fork)과 tracker는 `third_party/`의 git submodule입니다. **`--recursive`** 로 받아야 함께 내려옵니다.
 
 ```bash
-cd ~
-git clone https://github.com/neporez/OpenPCDet.git
-cd OpenPCDet
-pip install -e . --no-build-isolation            # CUDA ops 컴파일 (수 분 소요)
+mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
+git clone --recursive -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
+# 이미 --recursive 없이 받았다면:  cd rain_usv_perception && git submodule update --init --recursive
+```
+
+OpenPCDet은 submodule 위치에서 venv에 설치합니다 (CUDA ops 컴파일, 수 분 소요).
+
+```bash
+perception_env
+cd ~/ros2_ws/src/rain_usv_perception/third_party/OpenPCDet
+pip install -e . --no-build-isolation
 python -c "import pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda; print('pcdet ok')"
 ```
+
+`third_party/`에는 `COLCON_IGNORE`가 있어 colcon이 OpenPCDet을 ROS 패키지로 오인하지 않습니다.
+tracker(`third_party/tracker_task/tracker`)는 `lidar_perception_tracking` 패키지 안에 심볼릭 링크로 들어가 있어 별도 설치가 없습니다.
 
 ## 8. 워크스페이스 빌드
 
 ```bash
-mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
-git clone -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
 cd ~/ros2_ws
 perception_env
 colcon build --symlink-install

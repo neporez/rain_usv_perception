@@ -47,7 +47,7 @@ PointCloud2 (LiDAR, 10Hz)
 | `lidar_perception_viz` | Detection / Tracking 결과를 RViz `MarkerArray`로 시각화 (`detection_marker_node`, `marker_publisher_node`) |
 | `lidar_perception_bringup` | launch 파일 및 파라미터 config 모음 |
 
-모델(VoxelNeXt) 및 tracker 라이브러리는 ROS2 노드 코드와 분리되어 있으며,
+모델(OpenPCDet) 및 tracker 라이브러리는 `third_party/`의 git submodule로 들어오며(`git clone --recursive`),
 각 노드는 이를 라이브러리로 import하여 사용합니다.
 
 ---
@@ -90,8 +90,8 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 
 | 위치 | 원본 | 라이선스 | 비고 |
 |---|---|---|---|
-| `lidar_perception_tracking/lidar_perception_tracking/tracker/` | [hailanyi/3D-Multi-Object-Tracker](https://github.com/hailanyi/3D-Multi-Object-Tracker) | Apache-2.0 | NumPy 2.0 호환을 위한 최소 수정 |
-| [neporez/OpenPCDet](https://github.com/neporez/OpenPCDet) (별도 저장소) | [open-mmlab/OpenPCDet](https://github.com/open-mmlab/OpenPCDet) | Apache-2.0 | KRISO 데이터셋용 코드 추가 |
+| `third_party/tracker_task/` (submodule; `lidar_perception_tracking/.../tracker`는 이 안의 `tracker/`로 가는 심볼릭 링크) | [taekim26-eng/tracker_task](https://github.com/taekim26-eng/tracker_task) — CasTrack 기반 ([hailanyi/3D-Multi-Object-Tracker](https://github.com/hailanyi/3D-Multi-Object-Tracker)) + 해상용 Mahalanobis 연관 + 선박 CTRV-EKF | Apache-2.0 | |
+| `third_party/OpenPCDet/` (submodule) | [neporez/OpenPCDet](https://github.com/neporez/OpenPCDet) ← [open-mmlab/OpenPCDet](https://github.com/open-mmlab/OpenPCDet) | Apache-2.0 | KRISO 데이터셋 / 9-DoF VoxelNeXt 코드 추가 |
 
 각 디렉토리 내 `LICENSE` 파일을 참조하세요.
 

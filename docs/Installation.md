@@ -79,11 +79,14 @@ lidar_perception_ros_lyrical
 이 프로젝트는 KRISO 데이터셋용 코드가 추가된 [OpenPCDet](https://github.com/neporez/OpenPCDet)를
 사용합니다. 아래는 **CUDA 13.0 / PyTorch 2.12.0** 환경에서 검증된 설치 순서입니다.
 
-### 2-1. 저장소 clone
+### 2-1. 저장소 clone (submodule 포함)
+
+OpenPCDet(KRISO fork)과 tracker는 `rain_usv_perception/third_party/`의 git submodule입니다. `--recursive`로 받습니다.
 
 ```bash
-cd ~
-git clone https://github.com/neporez/OpenPCDet.git
+mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
+git clone --recursive -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
+# 이미 받았다면:  cd rain_usv_perception && git submodule update --init --recursive
 ```
 
 ### 2-2. CUDA Toolkit 설치
@@ -150,10 +153,10 @@ rm -rf "$HOME/cumm/cumm/build"
 **주의:** 다른 CUDA 버전을 사용하는 경우 `torch`/`spconv`는 사용 환경에 맞는 빌드로 교체해야 합니다.
 상세한 설치 옵션 및 문제 해결은 [OpenPCDet 공식 Installation 문서](https://github.com/open-mmlab/OpenPCDet/blob/master/docs/INSTALL.md)를 참고하세요.
 
-### 2-3. OpenPCDet 설치
+### 2-6. OpenPCDet 설치 (submodule 위치)
 
 ```bash
-cd ~/OpenPCDet
+cd ~/ros2_ws/src/rain_usv_perception/third_party/OpenPCDet
 pip install -e . --no-build-isolation
 ```
 
@@ -164,20 +167,7 @@ pip install -e . --no-build-isolation
 **주의:** `rain_usv_perception`은 `gnss_msgs/msg/Pose` 메시지 타입에
 의존합니다. 워크스페이스에 `gnss_msgs`를 포함한 패키지가 미리 빌드되어 있어야 합니다.
 
-### 3-1. 워크스페이스 생성
-
-```bash
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-```
-
-### 3-2. rain_usv_perception 배치
-
-```bash
-git clone -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
-```
-
-### 3-3. 빌드
+### 3-1. 빌드 (저장소는 2-1에서 이미 clone 됨)
 
 ```bash
 cd ~/ros2_ws
