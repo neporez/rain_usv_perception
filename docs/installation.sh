@@ -100,7 +100,8 @@ log "2/8 venv $VENV"
 [ -x "$VENV/bin/python" ] || python3 -m venv --system-site-packages "$VENV"
 # shellcheck disable=SC1091
 source "$VENV/bin/activate"
-python -m pip install -q -U pip setuptools wheel
+# setuptools < 80: colcon-core 0.21 (symlink-install uses "setup.py develop") and torch 2.12 (< 82) require it
+python -m pip install -q -U pip wheel "setuptools<80"
 # with --system-site-packages pip would consider an apt colcon "already installed" -> force it into the venv so that
 # colcon runs under the venv interpreter and builds our ament_python packages for it
 if [ "$(command -v colcon)" != "$VENV/bin/colcon" ]; then
