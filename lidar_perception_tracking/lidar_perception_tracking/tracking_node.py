@@ -20,7 +20,14 @@ class TrackingNode(Node):
         self.declare_parameter("detection_topic", "/detection/objects")
         self.declare_parameter("output_topic", "/alg1/dl_pst_detection")
         self.declare_parameter("viz_output_topic", "/tracking/objects_viz")
-        self.declare_parameter("gnss_topic", "/digital_bridge/gnss/pose")
+        # pose source: 10 Hz hemisphere GNSS (= /system/gnss/pose) by default; /dev/spatial_fog_dual/pose (100 Hz INS)
+        # also works. The 1 Hz /digital_bridge/gnss/pose is NOT recommended (would need extrapolation).
+        self.declare_parameter("gnss_topic", "/dev/gnss/hemisphere/pose")
+        self.declare_parameter("pose_time_source", "header")       # 'header' (host clock, same as the LiDAR) | 'gnss_time'
+        self.declare_parameter("pose_max_age_sec", 0.5)            # LiDAR stamp outside the pose buffer by more than this -> frame skipped
+        self.declare_parameter("pose_buffer_sec", 5.0)
+        self.declare_parameter("pose_time_offset_sec", 0.0)        # added to the LiDAR stamp before the lookup
+        self.declare_parameter("heading_convention", "ned")        # 'ned': Pose.yaw = deg clockwise from north (message spec) | 'enu'
         self.declare_parameter("tracker_config_path", "tracker/config/multi_object_tracker.yaml")
 
         detection_topic = self.get_parameter("detection_topic").value
@@ -30,10 +37,17 @@ class TrackingNode(Node):
         tracker_config_path = self.get_parameter("tracker_config_path").value
 
         self.tracker = TrackerAdapter(cfg_path=tracker_config_path)
-        self.pose_cache = PoseCache()
+        self.pose_cache = PoseCache(
+            max_age_sec=self.get_parameter("pose_max_age_sec").value,
+            buffer_sec=self.get_parameter("pose_buffer_sec").value,
+            time_source=self.get_parameter("pose_time_source").value,
+            heading_convention=self.get_parameter("heading_convention").value,
+            time_offset_sec=self.get_parameter("pose_time_offset_sec").value,
+        )
+        self.get_logger().info(f"pose source {gnss_topic} (time: {self.pose_cache.time_source}, heading: {self.pose_cache.heading_convention}, max age {self.pose_cache.max_age_sec}s)")
 
         self.gnss_sub = self.create_subscription(
-            Pose, gnss_topic, self.on_gnss, 10
+            Pose, gnss_topic, self.on_gnss, 100       # 100 Hz INS 소스도 밀리지 않도록 깊이 100
         )
         self.detection_sub = self.create_subscription(
             Object3DArray, detection_topic, self.on_detections, 10
@@ -49,7 +63,7 @@ class TrackingNode(Node):
 
     def on_detections(self, msg: Object3DArray):
         if not self.pose_cache.has_fix():
-            self.get_logger().warning("No GNSS fix yet, skipping frame.")
+            self.get_logger().warning("No GNSS pose received yet, skipping frame.", throttle_duration_sec=5.0)
             return
 
         boxes, scores, class_ids, class_names = self.object3d_array_to_boxes(msg)
@@ -58,6 +72,13 @@ class TrackingNode(Node):
 
         query_time = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         pose_matrix = self.pose_cache.get_pose_matrix(query_time)
+        if pose_matrix is None:
+            # 라이다 시각이 pose 버퍼에서 max_age 이상 벗어남 (pose 끊김 / 시계 불일치): 외삽하지 않고 프레임을 건너뛴다
+            latest = self.pose_cache.latest_time()
+            self.get_logger().warning(
+                f"No GNSS pose within {self.pose_cache.max_age_sec}s of the LiDAR stamp "
+                f"(lidar - latest pose = {query_time - latest:+.3f}s), skipping frame.", throttle_duration_sec=2.0)
+            return
 
         tracked = self.tracker.update(
             boxes, scores, class_ids, class_names, pose_matrix, query_time

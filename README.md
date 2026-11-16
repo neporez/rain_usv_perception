@@ -27,9 +27,9 @@ PointCloud2 (LiDAR, 10Hz)
 └────────────────────┘
         │  Object3DArray
         ▼
-┌────────────────────┐      GNSS Pose (1Hz)
+┌────────────────────┐      GNSS / INS Pose (10 Hz hemisphere, 또는 100 Hz Spatial FOG)
 │   tracking node    │◄─────────────────────
-└────────────────────┘  (등속도 외삽으로 10Hz 보간)
+└────────────────────┘  (라이다 프레임 시각으로 pose 보간, 외삽 없음)
         │  TrackedObject3DArray
         ▼
 ┌────────────────────┐
@@ -75,7 +75,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 | 파일 | 주요 파라미터 |
 |---|---|
 | `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`(기본 `cfgs/kriso_models/kriso_voxelnext_deploy.yaml`), `ckpt_path`(기본 `cfgs/ckpt/voxelnext_kriso_v4_real_epoch_80.pth`, git 미포함), `score_threshold` |
-| `tracking.yaml` | `detection_topic`, `gnss_topic`, `tracker_config_path` |
+| `tracker.yaml` | `detection_topic`, `gnss_topic`(기본 `/dev/gnss/hemisphere/pose`, 10 Hz), `pose_time_source`, `pose_max_age_sec`, `heading_convention`, `tracker_config_path` |
 | `viz.yaml` | `tracking_topic`, `detection_topic` |
 
 ---

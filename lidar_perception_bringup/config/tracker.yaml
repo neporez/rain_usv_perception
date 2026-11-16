@@ -2,8 +2,15 @@ lidar_tracking_node:
   ros__parameters:
     detection_topic: "/detection/objects"
     output_topic: "/alg1/dl_pst_detection"
-    gnss_topic: "/digital_bridge/gnss/pose"
     tracker_config_path: "tracker/config/multi_object_tracker.yaml"
-    
     viz_output_topic: "/tracking/objects_viz"
-    
+
+    # ego pose (gnss_msgs/msg/Pose). 10 Hz hemisphere GNSS = /system/gnss/pose; /dev/spatial_fog_dual/pose = 100 Hz INS.
+    # The LiDAR frame pose is INTERPOLATED between the two nearest pose samples (no velocity extrapolation),
+    # so the source must be >= 10 Hz. The 1 Hz /digital_bridge/gnss/pose is not suitable.
+    gnss_topic: "/dev/gnss/hemisphere/pose"
+    pose_time_source: "header"       # 'header' = host receive clock (same clock as the LiDAR PointCloud2 stamps) | 'gnss_time'
+    pose_max_age_sec: 0.5            # LiDAR stamp outside the pose buffer by more than this -> frame skipped with a warning
+    pose_buffer_sec: 5.0
+    pose_time_offset_sec: 0.0
+    heading_convention: "ned"        # Pose.yaw is deg clockwise from true north (message spec) -> converted to ENU yaw
