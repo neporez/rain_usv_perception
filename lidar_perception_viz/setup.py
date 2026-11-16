@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'marker_publisher_node = lidar_perception_viz.marker_publisher_node:main',
+            'detection_marker_node = lidar_perception_viz.detection_marker_node:main',
         ],
     },
 )

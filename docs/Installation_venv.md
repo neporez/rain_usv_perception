@@ -189,6 +189,7 @@ venv 폴더를 워크스페이스 안에 만들었다면 그 폴더에도 `COLCO
 ```bash
 perception_env
 ros2 launch lidar_perception_bringup detection_only.launch.py      # 탐지만
+ros2 launch lidar_perception_bringup detection_viz.launch.py       # 탐지 + RViz (GNSS 불필요)
 ros2 launch lidar_perception_bringup perception.launch.py          # 탐지 + 추적
 ros2 launch lidar_perception_bringup perception_viz.launch.py      # + RViz
 ```

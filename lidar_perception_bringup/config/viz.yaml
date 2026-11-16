@@ -1,6 +1,17 @@
+# Tracking 결과 -> RViz MarkerArray (perception_viz.launch.py)
 marker_publisher_node:
   ros__parameters:
-    tracking_topic: "/tracking/objects"
+    tracking_viz_topic: "/tracking/objects_viz"
     output_topic: "/viz/tracks"
+
+# Detection 결과 -> RViz MarkerArray (detection_viz.launch.py). 초록 와이어프레임 상자(9-DoF) + 선수 방향 + 라벨
+detection_marker_node:
+  ros__parameters:
     detection_topic: "/detection/objects"
-    detection_output_topic: "/viz/detections"
+    output_topic: "/viz/detections"
+    min_score: 0.0            # 탐지 노드의 score_threshold 위에 추가로 거를 때만 올림
+    line_width: 0.3
+    color_rgb: [0.0, 1.0, 0.0]
+    show_heading: true
+    show_label: true
+    label_height: 2.0

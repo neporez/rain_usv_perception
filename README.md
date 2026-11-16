@@ -29,7 +29,7 @@ PointCloud2 (LiDAR, 10Hz)
         ▼
 ┌────────────────────┐      GNSS / INS Pose (10 Hz hemisphere, 또는 100 Hz Spatial FOG)
 │   tracking node    │◄─────────────────────
-└────────────────────┘  (라이다 프레임 시각으로 pose 보간, 외삽 없음)
+└────────────────────┘  (라이다 프레임 시각으로 pose 보간)
         │  TrackedObject3DArray
         ▼
 ┌────────────────────┐
@@ -44,7 +44,7 @@ PointCloud2 (LiDAR, 10Hz)
 | `lidar_perception_interfaces` | `Object3D`, `TrackedObject3D` 등 커스텀 메시지 정의 |
 | `lidar_perception_detection` | PointCloud2 → VoxelNeXt 추론 → `Object3DArray` 발행 |
 | `lidar_perception_tracking` | Detection + GNSS pose → 다중 객체 추적 → `TrackedObject3DArray` 발행 |
-| `lidar_perception_viz` | Tracking 결과를 RViz `MarkerArray`로 시각화 |
+| `lidar_perception_viz` | Detection / Tracking 결과를 RViz `MarkerArray`로 시각화 (`detection_marker_node`, `marker_publisher_node`) |
 | `lidar_perception_bringup` | launch 파일 및 파라미터 config 모음 |
 
 모델(VoxelNeXt) 및 tracker 라이브러리는 ROS2 노드 코드와 분리되어 있으며,
@@ -61,6 +61,9 @@ source ~/ros2_ws/install/setup.bash
 # Detection 노드만 실행
 ros2 launch lidar_perception_bringup detection_only.launch.py
 
+# Detection + RViz 시각화 (추적 없음, GNSS 불필요)
+ros2 launch lidar_perception_bringup detection_viz.launch.py
+
 # Detection + Tracking
 ros2 launch lidar_perception_bringup perception.launch.py
 
@@ -76,7 +79,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 |---|---|
 | `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`(기본 `cfgs/kriso_models/kriso_voxelnext_deploy.yaml`), `ckpt_path`(기본 `cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth`, git 미포함), `score_threshold` |
 | `tracker.yaml` | `detection_topic`, `gnss_topic`(기본 `/dev/gnss/hemisphere/pose`, 10 Hz), `pose_time_source`, `pose_max_age_sec`, `heading_convention`, `tracker_config_path` |
-| `viz.yaml` | `tracking_topic`, `detection_topic` |
+| `viz.yaml` | `marker_publisher_node`: `tracking_viz_topic`, `output_topic` / `detection_marker_node`: `detection_topic`, `output_topic`, `min_score`, `line_width`, `color_rgb`, `show_heading`, `show_label` |
 
 ---
 
