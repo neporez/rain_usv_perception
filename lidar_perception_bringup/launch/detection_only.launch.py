@@ -1,5 +1,7 @@
-"""Detection 노드. input:=pointcloud (기본, /dev/lidar/points 구독) | input:=packets (ouster_packet_node 가 원시 패킷을 점군으로 변환).
-bag 재생 시: ros2 bag play <bag> --clock 와 함께 use_sim_time:=true."""
+## @file
+#  @brief detection_node 만 실행하는 launch 파일 (input:=packets 이면 ouster_packet_node 추가).
+
+"""! @brief detection_node 만 실행하는 launch 파일 (input:=packets 이면 ouster_packet_node 추가). """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -10,6 +12,10 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    """!
+    @brief detection.yaml 로 detection_node 를, input=packets 이면 ouster_packets.yaml 로 ouster_packet_node 를 함께 구성. 인자: input, use_sim_time, ouster_metadata_path.
+    @return detection_node(+ ouster_packet_node)를 담은 LaunchDescription.
+    """
     share = get_package_share_directory('lidar_perception_bringup')
     input_arg = DeclareLaunchArgument('input', default_value='pointcloud', description="'pointcloud' or 'packets'")
     sim_arg = DeclareLaunchArgument('use_sim_time', default_value='false')

@@ -1,5 +1,8 @@
-"""
-ouster_packets.py -- Ouster 원시 패킷(ouster_sensor_msgs/PacketMsg) -> 프레임 점군 디코더 (ouster-sdk >= 1.0).
+## @file
+#  @brief Ouster 원시 패킷(ouster_sensor_msgs/PacketMsg) → 프레임 점군 디코더 (ouster-sdk >= 1.0).
+
+"""!
+@brief Ouster 원시 패킷(ouster_sensor_msgs/PacketMsg) → 프레임 점군 디코더 (ouster-sdk >= 1.0).
 
 드라이버(ouster_ros os_driver, 설정: point_type original, organized, destagger, point_cloud_frame os_lidar,
 timestamp_mode TIME_FROM_ROS_TIME)가 발행하던 /dev/lidar/points 와 같은 점(x, y, z, intensity, reflectivity, ring, range)을
@@ -20,7 +23,21 @@ except ImportError as e:   # pragma: no cover
 
 
 class OusterPacketDecoder:
+    """!
+    @brief 라이다 패킷을 하나씩 받아 프레임(2048열)이 완성될 때마다 점군을 돌려주는 디코더.
+
+    ouster-sdk 의 FrameBatcher 로 패킷을 LidarFrame 에 모으고, XYZLut 으로 range 이미지를 센서 좌표로 바꾼 뒤
+    range > 0 인 유효 점만 남긴다. 좌표계는 드라이버(ouster_ros, point_cloud_frame os_lidar)와 같게 lidar_to_sensor_transform 의
+    역을 적용한다(평행이동은 metadata 에 mm 단위). 프레임 시각 규약은 stamp_mode 참조.
+    """
+
     def __init__(self, metadata_json: str, point_frame: str = "lidar", stamp_mode: str = "driver"):
+        """!
+        @brief 센서 metadata(JSON)로 디코더를 구성.
+        @param metadata_json 드라이버가 /dev/lidar/metadata 로 발행하는(또는 파일로 저장한) 센서 metadata JSON 문자열.
+        @param point_frame 'lidar'(os_lidar, 드라이버 출력과 동일) | 'sensor'(os_sensor).
+        @param stamp_mode 'driver'(직전 프레임 첫 패킷 시각 = ouster_ros 규약) | 'scan_start'(이 프레임 첫 패킷 시각).
+        """
         if point_frame not in ("lidar", "sensor"):
             raise ValueError("point_frame must be 'lidar' or 'sensor'")
         if stamp_mode not in ("driver", "scan_start"):
@@ -45,12 +62,21 @@ class OusterPacketDecoder:
 
     # ------------------------------------------------------------------
     def describe(self) -> str:
+        """!
+        @brief 센서 종류 / 모드 / 프레임 크기 / 출력 좌표계 / 시각 규약을 한 줄로 요약.
+        @return 로그용 문자열.
+        """
         si = self.info
         return (f"Ouster {si.prod_line} sn {si.sn} mode {si.config.lidar_mode} profile {si.format.udp_profile_lidar} "
                 f"({self.h} x {self.w}, {self.lidar_packet_size} B/packet), output frame {self.point_frame}, stamp {self.stamp_mode}")
 
     def feed(self, buf, host_time_ns: int):
-        """한 라이다 패킷을 넣는다. 프레임이 완성되면 dict(xyz, intensity, reflectivity, ring, range, stamp_ns) 를, 아니면 None."""
+        """!
+        @brief 라이다 패킷 하나를 넣는다. 프레임이 완성되면 점군 dict 를, 아니면 None 을 돌려준다.
+        @param buf 패킷 바이트열 (PacketMsg.buf). 길이가 lidar_packet_size 와 다르면 버린다.
+        @param host_time_ns 패킷 수신 호스트 시각 [ns] (프레임 시각 계산에 사용).
+        @return dict(xyz (N,3) float32, intensity, reflectivity, ring, range, stamp_ns, frame_id, n_valid_cols) 또는 None.
+        """
         data = np.frombuffer(bytes(buf), dtype=np.uint8) if not isinstance(buf, np.ndarray) else buf
         if data.size != self.lidar_packet_size:
             self.n_bad_size += 1
@@ -78,6 +104,12 @@ class OusterPacketDecoder:
         return out
 
     def _convert(self, frame, stamp_ns):
+        """!
+        @brief 완성된 LidarFrame 을 유효 점 배열로 변환 (XYZLut → 좌표계 변환 → 필드 추출).
+        @param frame ouster-sdk LidarFrame.
+        @param stamp_ns 프레임 시각 [ns].
+        @return feed() 가 돌려주는 dict.
+        """
         rng = np.asarray(frame.field(_osc.ChanField.RANGE))                 # (H, W) uint32 mm, staggered
         xyz = np.asarray(self.lut(rng)).reshape(-1, 3)                       # sensor frame, metres
         valid = rng.reshape(-1) > 0

@@ -1,0 +1,96 @@
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "lidar_detection"
+PROJECT_BRIEF          = "ROS 2 LiDAR point cloud object detection (VoxelNeXt 9-DoF) and tracking pipeline"
+OUTPUT_LANGUAGE        = English
+
+# 패키지 폴더 밖으로 생성 — lidar_detection(패키지)과 문서 결과물을 분리해서
+# 나중에 각각 따로 전달할 수 있게 함 (radar_detection과 동일한 배치)
+OUTPUT_DIRECTORY       = ../lidar_detection_docs
+CREATE_SUBDIRS         = NO
+
+#---------------------------------------------------------------------------
+# Build / comment parsing
+#---------------------------------------------------------------------------
+# 첫 문장을 자동으로 @brief로 취급 (C++/Python 공통)
+JAVADOC_AUTOBRIEF      = YES
+
+# """ ... """ 형태의 일반 Python docstring을 그대로 Doxygen 주석으로 인식.
+# (Doxygen 1.9.4+ 필요. 이보다 낮은 버전이면 """! 로 시작해야 인식됨 — `doxygen --version`으로 확인)
+PYTHON_DOCSTRING       = YES
+
+# 주석 없는 항목까지 강제로 문서화하지 않음 — radar_detection과 동일하게
+# "직접 문서 주석을 단 것만" 문서에 포함
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+
+# radar_detection과 동일한 용어/스타일로 맞추기 위함 ("Namespaces"→"Packages" 등)
+OPTIMIZE_OUTPUT_JAVA   = YES
+
+# 주석 누락을 빌드 로그에서 바로 확인하기 위함 (주석 작성 진행 상황 체크용)
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+# ROS2 ament_python 패키지는 <pkg>/<pkg>/ 안이 실제 소스 위치이므로
+# 바깥쪽(setup.py, test/, resource/)은 자동으로 제외됨.
+# 메시지 전용 패키지(detect_msgs, lidar_perception_interfaces)와
+# 서드파티 벤더 패키지(ros2_message_packages/)는 문서화 범위에서 제외.
+INPUT                  = README.md \
+                         docs/Installation.md \
+                         docs/Installation_venv.md \
+                         docs/Installation_Local.md \
+                         docs/Installation_Docker.md \
+                         lidar_perception_detection/lidar_perception_detection \
+                         lidar_perception_tracking/lidar_perception_tracking \
+                         lidar_perception_viz/lidar_perception_viz \
+                         lidar_perception_bringup/launch \
+                         tools
+
+USE_MDFILE_AS_MAINPAGE = README.md
+
+FILE_PATTERNS          = *.py
+RECURSIVE              = YES
+
+#---------------------------------------------------------------------------
+# Source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+# 문서 주석을 소스 뷰에서 숨김 (radar_detection 결과물과 동일한 동작 — Doxygen 기본값)
+STRIP_CODE_COMMENTS    = YES
+
+#---------------------------------------------------------------------------
+# HTML output
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+GENERATE_TREEVIEW      = YES
+SEARCHENGINE           = YES
+
+# Packages(=파일 단위 자동 namespace) 탭 숨김 — Topics가 패키지 단위로 이미 정리해주므로
+# 중복/혼란만 가중시킴. 각 클래스 문서 하단의 "Definition at line X of file Y"로
+# 소속 파일은 계속 확인 가능하니 정보 손실은 없음.
+SHOW_NAMESPACES        = NO
+
+# 원문 그대로 docs/html/ 로 복사할 파일 (PDF 등 doxygen이 직접 파싱 못하는 첨부 문서)
+HTML_EXTRA_FILES       = docker/docker_build_guide.pdf
+
+# \verbinclude로 .msg 원문을 그대로 문서에 삽입하기 위한 검색 경로
+EXAMPLE_PATH           = lidar_perception_interfaces/msg detect_msgs/msg
+
+#---------------------------------------------------------------------------
+# Graphs (Graphviz / dot)
+#---------------------------------------------------------------------------
+# Python 코드는 상속/협업 관계가 단순(대부분 rclpy.Node 하나만 상속)해서
+# 그래프를 그려봤자 노드 1~2개짜리라 실효성이 없어 꺼둠.
+# HAVE_DOT는 Graphviz 그래프만 끄는 옵션이고, CLASS_GRAPH는 기본값(YES)일 때
+# Graphviz가 없으면 내장 렌더러로 대체 그림을 그리므로 NO로 명시해서 완전히 꺼야 함.
+HAVE_DOT               = NO
+CLASS_GRAPH            = NO
+
+EXCLUDE_PATTERNS       = */__pycache__/*

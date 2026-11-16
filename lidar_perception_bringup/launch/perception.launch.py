@@ -1,4 +1,7 @@
-"""Detection + Tracking. input:=pointcloud (기본) | packets, use_sim_time:=true (bag 재생 시)."""
+## @file
+#  @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외).
+
+"""! @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외). """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -9,6 +12,10 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    """!
+    @brief detection_only.launch.py 를 포함하고 tracker.yaml 로 tracking_node 를 추가. 인자(input, use_sim_time, ouster_metadata_path)는 그대로 전달.
+    @return detection(+packet) + tracking 노드를 담은 LaunchDescription.
+    """
     bringup_share = get_package_share_directory('lidar_perception_bringup')
     input_arg = DeclareLaunchArgument('input', default_value='pointcloud', description="'pointcloud' or 'packets'")
     sim_arg = DeclareLaunchArgument('use_sim_time', default_value='false')

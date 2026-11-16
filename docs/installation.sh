@@ -80,10 +80,11 @@ else
   if ! apt-cache policy "cuda-nvcc-${CUDA_VER}" 2>/dev/null | grep -q Candidate; then
     log "adding the NVIDIA CUDA apt repository"
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2604/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
-    sudo dpkg -i /tmp/cuda-keyring.deb; sudo apt-get update
+    sudo dpkg -i /tmp/cuda-keyring.deb; sudo apt-get -o DPkg::Lock::Timeout=600 update
   fi
-  if [ "${FULL_CUDA:-0}" = "1" ]; then sudo apt-get install -y "cuda-toolkit-${CUDA_VER}"
-  else sudo apt-get install -y --no-install-recommends $CUDA_MIN_PKGS; fi
+  # DPkg::Lock::Timeout: wait for unattended-upgrades instead of failing on the dpkg lock
+  if [ "${FULL_CUDA:-0}" = "1" ]; then sudo apt-get -o DPkg::Lock::Timeout=600 install -y "cuda-toolkit-${CUDA_VER}"
+  else sudo apt-get -o DPkg::Lock::Timeout=600 install -y --no-install-recommends $CUDA_MIN_PKGS; fi
   ok "CUDA installed: $("$CUDA_HOME_DIR/bin/nvcc" --version | tail -1)"
 fi
 # glibc 2.43 / nvcc 13.x: rsqrt exception-specification conflict (harmless if already patched)

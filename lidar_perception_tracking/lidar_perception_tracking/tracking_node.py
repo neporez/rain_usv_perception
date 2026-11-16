@@ -1,3 +1,7 @@
+## @file
+#  @brief 다중 객체 추적 ROS2 노드 진입점.
+
+"""! @brief 다중 객체 추적 ROS2 노드 진입점. """
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -14,7 +18,24 @@ from lidar_perception_tracking.tracker_adapter import TrackerAdapter
 
 
 class TrackingNode(Node):
+    """!
+    @brief Object3DArray 탐지 결과와 GNSS/INS pose를 받아 다중 객체 추적을 수행하는 노드.
+
+    detection_node의 출력(Object3DArray, 10Hz)과 자선 pose(gnss_msgs/Pose; hemisphere GNSS 10Hz
+    또는 Spatial FOG INS 100Hz)를 각각 구독하다가, 탐지가 들어올 때마다 그 LiDAR 프레임 시각의
+    pose를 PoseCache 버퍼에서 **보간**해 로컬→글로벌 변환 행렬을 만들고, TrackerAdapter로
+    프레임 간 ID 추적을 수행한다. 결과는 두 가지 포맷으로 동시에 발행한다.
+
+    주요 구성:
+    - on_gnss(): pose 수신 시 PoseCache 버퍼 갱신.
+    - on_detections(): 탐지 수신 시 추적 수행 및 결과 발행 (메인 처리).
+    - object3d_array_to_boxes(): Object3DArray → (N,7) numpy 배열 변환.
+    """
+
     def __init__(self):
+        """!
+        @brief 파라미터 선언, TrackerAdapter/PoseCache 생성, 구독/발행자 생성.
+        """
         super().__init__("tracking_node")
 
         self.declare_parameter("detection_topic", "/detection/objects")
@@ -36,7 +57,9 @@ class TrackingNode(Node):
         gnss_topic = self.get_parameter("gnss_topic").value
         tracker_config_path = self.get_parameter("tracker_config_path").value
 
+        ## ROS ↔ Tracker3D 어댑터
         self.tracker = TrackerAdapter(cfg_path=tracker_config_path)
+        ## 자선 pose 버퍼 (LiDAR 시각으로 보간)
         self.pose_cache = PoseCache(
             max_age_sec=self.get_parameter("pose_max_age_sec").value,
             buffer_sec=self.get_parameter("pose_buffer_sec").value,
@@ -46,22 +69,42 @@ class TrackingNode(Node):
         )
         self.get_logger().info(f"pose source {gnss_topic} (time: {self.pose_cache.time_source}, heading: {self.pose_cache.heading_convention}, max age {self.pose_cache.max_age_sec}s)")
 
+        ## GNSS/INS pose 구독자
         self.gnss_sub = self.create_subscription(
             Pose, gnss_topic, self.on_gnss, 100       # 100 Hz INS 소스도 밀리지 않도록 깊이 100
         )
+        ## 탐지 결과(Object3DArray) 구독자
         self.detection_sub = self.create_subscription(
             Object3DArray, detection_topic, self.on_detections, 10
         )
 
-        # 트래커 출력 (detect_msgs 포맷)
+        ## 트래커 출력 발행자 (detect_msgs/ObjectsDetected 포맷, 타 시스템 호환용)
         self.pub = self.create_publisher(ObjectsDetected, output_topic, 10)
-        # 시각화용 출력 (기존 TrackedObject3DArray 포맷)
+        ## 시각화용 발행자 (TrackedObject3DArray 포맷)
         self.pub_viz = self.create_publisher(TrackedObject3DArray, viz_output_topic, 10)
 
     def on_gnss(self, msg: Pose):
+        """!
+        @brief pose 수신 콜백 — PoseCache 버퍼에 추가.
+        @param msg gnss_msgs/msg/Pose 메시지 (hemisphere GNSS 또는 Spatial FOG INS).
+        """
         self.pose_cache.update(msg)
 
     def on_detections(self, msg: Object3DArray):
+        """!
+        @brief 탐지 결과 수신 시 추적을 수행하고 결과를 두 포맷으로 발행하는 메인 콜백.
+
+        1. **pose 확인**: 아직 pose를 한 번도 못 받았으면 이 프레임은 건너뛴다 (로컬→글로벌 변환이 불가능하므로).
+        2. **pose 보간**: 탐지 메시지(= LiDAR 프레임)의 timestamp로 PoseCache에서 두 샘플 사이를 보간한 pose 행렬을 얻는다.
+           버퍼 밖으로 pose_max_age_sec 이상 벗어나면(pose 끊김, 시계 불일치) 외삽하지 않고 프레임을 건너뛴다.
+        3. **추적**: TrackerAdapter.update()로 프레임 간 ID/속도가 채워진 결과를 얻는다.
+        4. **메시지 변환 및 발행**: 같은 추적 결과를 (a) 시각화용 TrackedObject3DArray와 (b) 다른 시스템 호환용
+           ObjectsDetected(detect_msgs) 두 포맷으로 동시에 채워 각각 발행한다. ObjectsDetected는 원래 픽셀 좌표 기반
+           탐지 스키마라서, `x/y/w/h` 필드에 실제로는 로컬 좌표(m)를 정수로 캐스팅해 채워넣는다 — 필드명이 픽셀을
+           뜻하지만 실제 단위는 미터임에 주의.
+
+        @param msg detection_node가 발행한 Object3DArray (로컬 좌표계 기준).
+        """
         if not self.pose_cache.has_fix():
             self.get_logger().warning("No GNSS pose received yet, skipping frame.", throttle_duration_sec=5.0)
             return
@@ -147,6 +190,11 @@ class TrackingNode(Node):
         self.pub_viz.publish(viz_msg)
 
     def object3d_array_to_boxes(self, msg: Object3DArray):
+        """!
+        @brief Object3DArray를 Tracker3D/TrackerAdapter가 쓰는 numpy 배열들로 변환 (7열: yaw 까지, roll/pitch 는 추적에 미사용).
+        @param msg 변환할 Object3DArray 메시지.
+        @return (boxes(N,7) float64, scores(N,) float64, class_ids(N,) int32, class_names(N,) object) 튜플.
+        """
         boxes = []
         scores = []
         class_ids = []
@@ -171,6 +219,10 @@ class TrackingNode(Node):
 
 
 def main(args=None):
+    """!
+    @brief ROS2 노드 실행 진입점 (rclpy 초기화 → spin → 종료).
+    @param args rclpy.init()에 전달할 커맨드라인 인자.
+    """
     rclpy.init(args=args)
     node = TrackingNode()
     rclpy.spin(node)

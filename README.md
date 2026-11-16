@@ -1,18 +1,18 @@
-# rain_usv_perception
+# lidar_detection Package (rain_usv_perception)
 
-ROS2 기반 라이다 포인트클라우드 객체 인식 및 추적 패키지입니다.
+ROS2 기반 라이다 포인트클라우드 객체 인식 및 추적 패키지
 
 ---
 
 ## Installation
 
-설치 방법은 세 가지입니다.
+설치 방법은 세 가지이다. 자세한 내용은 [docs/Installation.md](./docs/Installation.md) 참고.
 
 | 방식 | 문서 |
 |---|---|
 | Ubuntu 26.04 로컬, conda / Docker 없이 (venv) — **배포 기본**: `git clone --recursive` → `bash docs/installation.sh` → `source env.sh` | [docs/Installation_venv.md](./docs/Installation_venv.md) |
-| conda (RoboStack) | [docs/Installation.md](./docs/Installation.md) |
-| Docker | [docker/Dockerfile](./docker/Dockerfile), `docker compose -f docker/docker-compose.yml up -d` |
+| conda (RoboStack) | [docs/Installation_Local.md](./docs/Installation_Local.md) |
+| Docker | [docs/Installation_Docker.md](./docs/Installation_Docker.md), [docker/Dockerfile](./docker/Dockerfile) |
 
 ---
 
@@ -48,7 +48,7 @@ PointCloud2 (LiDAR, 10Hz)  ◄── (input:=packets) ouster_packet_node: /dev/l
 | `lidar_perception_bringup` | launch 파일 및 파라미터 config 모음 |
 
 모델(OpenPCDet) 및 tracker 라이브러리는 `third_party/`의 git submodule로 들어오며(`git clone --recursive`),
-각 노드는 이를 라이브러리로 import하여 사용합니다.
+각 노드는 이를 라이브러리로 import하여 사용한다.
 
 ---
 
@@ -82,7 +82,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 
 ### 주요 파라미터
 
-파라미터는 `lidar_perception_bringup/config/*.yaml`에서 수정합니다.
+파라미터는 `lidar_perception_bringup/config/*.yaml`에서 수정한다.
 
 | 파일 | 주요 파라미터 |
 |---|---|
@@ -95,14 +95,14 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 
 ## Third-Party Code & Licenses
 
-이 저장소 자체 코드는 [LICENSE](./LICENSE)(Apache-2.0)를 따릅니다.
-다음 서드파티 코드가 일부 포함되어 있으며, 각각 원 라이선스를 따릅니다.
+이 저장소 자체 코드는 [LICENSE](./LICENSE)(Apache-2.0)를 따른다.
+다음 서드파티 코드가 submodule 로 포함되어 있으며, 각각 원 라이선스를 따른다.
 
 | 위치 | 원본 | 라이선스 | 비고 |
 |---|---|---|---|
 | `third_party/tracker_task/` (submodule; `lidar_perception_tracking/.../tracker`는 이 안의 `tracker/`로 가는 심볼릭 링크) | [taekim26-eng/tracker_task](https://github.com/taekim26-eng/tracker_task) — CasTrack 기반 ([hailanyi/3D-Multi-Object-Tracker](https://github.com/hailanyi/3D-Multi-Object-Tracker)) + 해상용 Mahalanobis 연관 + 선박 CTRV-EKF | Apache-2.0 | |
 | `third_party/OpenPCDet/` (submodule) | [neporez/OpenPCDet](https://github.com/neporez/OpenPCDet) ← [open-mmlab/OpenPCDet](https://github.com/open-mmlab/OpenPCDet) | Apache-2.0 | KRISO 데이터셋 / 9-DoF VoxelNeXt 코드 추가 |
 
-각 디렉토리 내 `LICENSE` 파일을 참조하세요.
+각 디렉토리 내 `LICENSE` 파일을 참조.
 
 ---

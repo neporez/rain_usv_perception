@@ -1,5 +1,8 @@
-"""
-pose_cache.py
+## @file
+#  @brief GNSS/INS pose 를 시간순 버퍼에 저장해 LiDAR 프레임 시각의 pose 를 보간으로 제공하는 캐시.
+
+"""!
+@brief GNSS/INS pose 를 시간순 버퍼에 저장해 LiDAR 프레임 시각의 pose 를 보간으로 제공하는 캐시.
 
 GNSS / INS pose (gnss_msgs/msg/Pose) 를 시간순 버퍼에 저장해 두고, 라이다 프레임 시각의 자선 pose 를
 **버퍼 안의 두 샘플 사이 보간**으로 돌려준다. 속도 외삽은 하지 않는다.
@@ -29,8 +32,25 @@ import numpy as np
 
 
 class PoseCache:
+    """!
+    @brief gnss_msgs/Pose 를 시간순으로 쌓아 두고 임의 시각(LiDAR 프레임)의 자선 pose 를 보간해 돌려주는 버퍼.
+
+    LiDAR 탐지는 10Hz, pose 는 10Hz(hemisphere) 또는 100Hz(Spatial FOG)로 들어오므로 LiDAR 프레임 시각은
+    거의 항상 두 pose 샘플 사이에 놓인다. 위치는 선형, yaw 는 최단각으로 보간하고, 버퍼 끝 밖이면
+    max_age_sec 까지만 가장 가까운 샘플을 그대로 쓴다(속도 외삽 없음). tracking_node 가 매 탐지 프레임마다
+    get_pose_matrix() 를 호출해 로컬→글로벌(UTM, ENU) 변환 행렬을 얻는다.
+    """
+
     def __init__(self, max_age_sec: float = 0.5, buffer_sec: float = 5.0, time_source: str = "header",
                  heading_convention: str = "ned", time_offset_sec: float = 0.0):
+        """!
+        @brief 빈 버퍼로 초기화.
+        @param max_age_sec 버퍼 밖 시각을 허용하는 최대 거리 [s]; 넘으면 get_pose() 가 None.
+        @param buffer_sec 버퍼에 유지하는 시간 길이 [s].
+        @param time_source 'header'(수신 시각, 라이다와 같은 호스트 시계) | 'gnss_time'(NMEA fix 시각).
+        @param heading_convention 'ned'(Pose.yaw = 진북 기준 시계방향 deg → ENU yaw 로 변환) | 'enu'(그대로).
+        @param time_offset_sec 질의 시각에 더하는 보정값 [s].
+        """
         if time_source not in ("header", "gnss_time"):
             raise ValueError(f"time_source must be 'header' or 'gnss_time', got {time_source!r}")
         if heading_convention not in ("ned", "enu"):
@@ -40,12 +60,19 @@ class PoseCache:
         self.time_source = time_source
         self.heading_convention = heading_convention
         self.time_offset_sec = float(time_offset_sec)   # 질의 시각에 더하는 보정값 (라이다 / pose 시계 차이가 있을 때)
-        self._t = deque()        # float seconds, 단조 증가
-        self._p = deque()        # (x, y, z, yaw_rad, utmzone)
+        ## pose 시각 [s], 단조 증가
+        self._t = deque()
+        ## (x, y, z, yaw_rad, utmzone) — 시각과 같은 순서
+        self._p = deque()
+        ## 수신한 pose 수
         self.n_received = 0
 
     # ------------------------------------------------------------------ input
     def update(self, msg):
+        """!
+        @brief 새 pose 를 버퍼 끝에 추가 (역순/중복 스탬프는 버림), buffer_sec 보다 오래된 샘플은 제거.
+        @param msg gnss_msgs/msg/Pose 메시지.
+        """
         if self.time_source == "header":
             t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         else:
@@ -62,15 +89,30 @@ class PoseCache:
             self._p.popleft()
 
     def has_fix(self) -> bool:
+        """!
+        @brief pose 를 한 번이라도 수신했는지 여부.
+        @return 버퍼가 비어 있지 않으면 True.
+        """
         return len(self._t) > 0
 
     def latest_time(self):
+        """!
+        @brief 가장 최근 pose 의 시각.
+        @return 시각 [s], 버퍼가 비었으면 None.
+        """
         return self._t[-1] if self._t else None
 
     # ------------------------------------------------------------------ query
     def get_pose(self, query_time_sec: float):
-        """라이다 프레임 시각의 pose. dict(x, y, z, yaw_rad, utmzone, dt, mode) 또는 None (사용할 pose 없음).
-        mode: 'interp' 두 샘플 사이 보간 | 'hold' 버퍼 끝 샘플 그대로 (|dt| <= max_age_sec)."""
+        """!
+        @brief 라이다 프레임 시각의 pose 를 보간해 돌려준다.
+
+        질의 시각(+ time_offset_sec)이 두 샘플 사이면 위치 선형 / yaw 최단각 보간('interp'), 버퍼 끝 밖이면
+        가장 가까운 끝 샘플을 그대로 사용('hold', |dt| <= max_age_sec), 그보다 멀면 None (외삽하지 않음).
+
+        @param query_time_sec pose 를 구할 시각 [s] (LiDAR 프레임 header.stamp).
+        @return dict(x, y, z, yaw_rad, utmzone, dt, mode) 또는 None.
+        """
         if not self._t:
             return None
         q = query_time_sec + self.time_offset_sec
@@ -95,7 +137,11 @@ class PoseCache:
         return {"x": p[0], "y": p[1], "z": p[2], "yaw_rad": p[3], "utmzone": p[4], "dt": dt, "mode": "hold"}
 
     def get_pose_matrix(self, query_time_sec: float):
-        """4x4 sensor -> global(UTM, ENU) 변환. pose 가 없으면 None."""
+        """!
+        @brief get_pose() 결과를 4x4 동차변환행렬(센서 로컬 → 글로벌 UTM/ENU)로 변환.
+        @param query_time_sec pose 를 구할 시각 [s].
+        @return numpy (4,4) 행렬, 사용할 pose 가 없으면 None.
+        """
         pose = self.get_pose(query_time_sec)
         if pose is None:
             return None

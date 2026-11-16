@@ -1,4 +1,7 @@
-"""Detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요)."""
+## @file
+#  @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요).
+
+"""! @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요). """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -9,6 +12,10 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    """!
+    @brief detection_only.launch.py 를 포함하고 detection_marker_node 와 rviz2(lidar_perception_detection_viz.rviz)를 추가로 구성.
+    @return detection(+packet) + detection_marker_node + rviz2 를 담은 LaunchDescription.
+    """
     bringup_share = get_package_share_directory('lidar_perception_bringup')
     input_arg = DeclareLaunchArgument('input', default_value='pointcloud', description="'pointcloud' or 'packets'")
     sim_arg = DeclareLaunchArgument('use_sim_time', default_value='false')

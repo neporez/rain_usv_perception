@@ -1,0 +1,25 @@
+# Docker Installation
+
+`docker/` 폴더의 `Dockerfile`, `docker-compose.yml`을 사용해 컨테이너 환경에서 빌드/실행한다.
+Dockerfile 은 `git clone --recursive` 로 저장소(submodule 포함)를 받고 `third_party/OpenPCDet` 에서 OpenPCDet 을 설치한다.
+
+```bash
+cd docker
+sudo docker build -t musv_lidar .
+sudo docker compose run --rm musv_lidar bash
+# 컨테이너 안에서: 체크포인트 다운로드 (GitHub Release) 후 실행
+cd /ros2_ws/src/rain_usv_perception/lidar_perception_detection/lidar_perception_detection/cfgs/ckpt
+wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/voxelnext_kriso_real_epoch_80.pth
+ros2 launch lidar_perception_bringup perception_viz.launch.py          # 첫 실행 시 spconv JIT 빌드 (10~20 분)
+```
+
+## 가이드라인 PDF
+
+\htmlonly
+<iframe src="docker_build_guide.pdf" width="100%" height="800px" style="border:1px solid #ccc;">
+  이 브라우저는 PDF 미리보기를 지원하지 않는다.
+  <a href="docker_build_guide.pdf">PDF 다운로드</a>
+</iframe>
+\endhtmlonly
+
+미리보기가 안 보이면 [PDF 다운로드](docker_build_guide.pdf)를 클릭한다.

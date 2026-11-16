@@ -1,5 +1,8 @@
-"""
-ouster_packet_node.py -- /dev/lidar/lidar_packets (ouster_sensor_msgs/PacketMsg) -> /dev/lidar/points (sensor_msgs/PointCloud2).
+## @file
+#  @brief Ouster 원시 패킷 토픽을 PointCloud2 로 변환해 발행하는 ROS2 노드 (input:=packets).
+
+"""!
+@brief /dev/lidar/lidar_packets (ouster_sensor_msgs/PacketMsg) → /dev/lidar/points (sensor_msgs/PointCloud2) 변환 노드.
 
 실시간 센서나 bag 재생이 원시 패킷만 줄 때 탐지 노드 앞에 두는 노드. 센서 metadata(JSON)는 드라이버가 latched 로
 발행하는 /dev/lidar/metadata (std_msgs/String) 또는 metadata_path 파일에서 읽는다. 출력 점군은 드라이버의
@@ -22,7 +25,22 @@ _FIELDS = [("x", PointField.FLOAT32, np.float32), ("y", PointField.FLOAT32, np.f
 
 
 class OusterPacketNode(Node):
+    """!
+    @brief 원시 패킷 구독 → OusterPacketDecoder → PointCloud2 발행.
+
+    센서 metadata 는 드라이버의 latched 토픽(metadata_topic) 또는 파일(metadata_path)에서 받으며, 받기 전의 패킷은
+    버린다(경고). 출력은 드라이버의 /dev/lidar/points 와 같은 좌표계(os_lidar)와 필드 이름(x, y, z, intensity,
+    reflectivity, ring, range)을 쓰되 유효 점만 담는다. use_sim_time 일 때 /clock 을 받기 전에는 프레임을 내보내지 않는다.
+
+    주요 구성:
+    - on_metadata(): metadata 수신 → 디코더 생성.
+    - on_packet(): 패킷 1개 → 디코더 → 프레임 완성 시 PointCloud2 발행.
+    """
+
     def __init__(self):
+        """!
+        @brief 파라미터 선언, 디코더(파일 metadata 가 있으면 즉시) 준비, 구독/발행자 생성.
+        """
         super().__init__("ouster_packet_node")
         self.declare_parameter("packets_topic", "/dev/lidar/lidar_packets")
         self.declare_parameter("metadata_topic", "/dev/lidar/metadata")
@@ -58,18 +76,31 @@ class OusterPacketNode(Node):
                                f"(frame_id {self.frame_id}); waiting for metadata" if self.decoder is None else "decoder ready: " + self.decoder.describe())
 
     def _init_decoder(self, json_str, source):
+        """!
+        @brief metadata JSON 으로 디코더를 한 번만 생성.
+        @param json_str 센서 metadata JSON.
+        @param source 로그용 출처 문자열 ("topic" 또는 파일 경로).
+        """
         if self.decoder is not None:
             return
         self.decoder = OusterPacketDecoder(json_str, point_frame=self.point_frame, stamp_mode=self.stamp_mode)
         self.get_logger().info(f"metadata from {source}: {self.decoder.describe()}")
 
     def on_metadata(self, msg: String):
+        """!
+        @brief latched metadata 토픽 콜백.
+        @param msg std_msgs/String (센서 metadata JSON).
+        """
         try:
             self._init_decoder(msg.data, "topic")
         except Exception as e:  # noqa: BLE001
             self.get_logger().error(f"bad metadata: {e}")
 
     def on_packet(self, msg: PacketMsg):
+        """!
+        @brief 라이다 패킷 콜백 — 디코더에 넣고 프레임이 완성되면 PointCloud2 로 발행.
+        @param msg ouster_sensor_msgs/PacketMsg (buf = 패킷 바이트열).
+        """
         if self.decoder is None:
             self._dropped += 1
             if self._dropped % 1280 == 1:
@@ -102,6 +133,10 @@ class OusterPacketNode(Node):
 
 
 def main(args=None):
+    """!
+    @brief ROS2 노드 실행 진입점 (rclpy 초기화 → spin → 종료).
+    @param args rclpy.init()에 전달할 커맨드라인 인자.
+    """
     rclpy.init(args=args)
     node = OusterPacketNode()
     rclpy.spin(node)

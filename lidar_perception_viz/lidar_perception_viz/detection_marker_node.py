@@ -1,7 +1,8 @@
-"""
-detection_marker_node.py
+## @file
+#  @brief 탐지 결과(Object3DArray)를 RViz2 MarkerArray 로 그리는 노드 (detection_viz.launch.py).
 
-Object3DArray (탐지 결과) -> visualization_msgs/MarkerArray (RViz2).
+"""!
+@brief Object3DArray (탐지 결과) → visualization_msgs/MarkerArray (RViz2).
 상자는 와이어프레임(LINE_LIST)으로 그려 점군을 가리지 않게 하고, 9자유도(yaw, roll, pitch)를 모두 반영한다
 (회전 R = Rz(yaw) Ry(pitch) Rx(roll), 데이터셋 / OpenPCDet 규약). 선수 방향은 상자 중심에서 앞면 중심으로 가는 선,
 라벨은 클래스 이름 / 점수 / 길이를 상자 위에 띄운다. 색은 기본 초록(예측). 매 프레임 DELETEALL 후 다시 그린다.
@@ -23,7 +24,11 @@ _EDGES = [(0, 1), (1, 3), (3, 2), (2, 0),      # 바닥
 
 
 def _rotation(yaw, pitch, roll):
-    """R = Rz(yaw) Ry(pitch) Rx(roll), 3x3 (중첩 리스트)."""
+    """!
+    @brief 상자 회전 행렬 R = Rz(yaw) Ry(pitch) Rx(roll) (데이터셋 / OpenPCDet 규약).
+    @param yaw 방위각 [rad]. @param pitch 피치 [rad]. @param roll 롤 [rad].
+    @return 3x3 중첩 리스트.
+    """
     cy, sy, cp, sp, cr, sr = math.cos(yaw), math.sin(yaw), math.cos(pitch), math.sin(pitch), math.cos(roll), math.sin(roll)
     return [[cy * cp, cy * sp * sr - sy * cr, cy * sp * cr + sy * sr],
             [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * sr],
@@ -31,7 +36,11 @@ def _rotation(yaw, pitch, roll):
 
 
 def _corners(obj):
-    """센서 좌표계의 8개 꼭짓점 [(x, y, z)], 인덱스 = ix + 2*iy + 4*iz (ix, iy, iz in {0: -, 1: +})."""
+    """!
+    @brief Object3D 의 8개 꼭짓점을 센서 좌표계로 계산.
+    @param obj lidar_perception_interfaces/Object3D.
+    @return ([(x, y, z)] 8개 (인덱스 = ix + 2*iy + 4*iz), 회전 행렬 R).
+    """
     R = _rotation(obj.yaw, obj.pitch, obj.roll)
     hx, hy, hz = obj.size.x / 2.0, obj.size.y / 2.0, obj.size.z / 2.0
     cx, cy, cz = obj.center.x, obj.center.y, obj.center.z
@@ -47,7 +56,16 @@ def _corners(obj):
 
 
 class DetectionMarkerNode(Node):
+    """!
+    @brief 탐지 상자를 초록 와이어프레임(9자유도) + 선수 방향 선 + 라벨 텍스트 마커로 발행.
+
+    매 프레임 DELETEALL 마커를 먼저 넣어 잔상을 없애고, 점수가 min_score 미만인 상자는 그리지 않는다.
+    """
+
     def __init__(self):
+        """!
+        @brief 파라미터 선언(색, 선 두께, 라벨 등), 구독/발행자 생성.
+        """
         super().__init__("detection_marker_node")
         self.declare_parameter("detection_topic", "/detection/objects")
         self.declare_parameter("output_topic", "/viz/detections")
@@ -73,6 +91,11 @@ class DetectionMarkerNode(Node):
 
     # ------------------------------------------------------------------
     def _base(self, header, ns, mid, mtype):
+        """!
+        @brief 공통 필드(header, ns, id, type, 색, lifetime)를 채운 Marker 생성.
+        @param header 입력 메시지 header (frame_id, stamp 유지). @param ns 네임스페이스. @param mid 마커 id. @param mtype Marker 종류.
+        @return Marker.
+        """
         m = Marker()
         m.header = header
         m.ns = ns
@@ -86,6 +109,10 @@ class DetectionMarkerNode(Node):
         return m
 
     def on_detections(self, msg: Object3DArray):
+        """!
+        @brief 탐지 수신 콜백 — 상자 / 선수 방향 / 라벨 마커를 만들어 MarkerArray 로 발행.
+        @param msg detection_node 의 Object3DArray.
+        """
         arr = MarkerArray()
         clear = Marker()
         clear.header = msg.header
@@ -126,6 +153,10 @@ class DetectionMarkerNode(Node):
 
 
 def main(args=None):
+    """!
+    @brief ROS2 노드 실행 진입점 (rclpy 초기화 → spin → 종료).
+    @param args rclpy.init()에 전달할 커맨드라인 인자.
+    """
     rclpy.init(args=args)
     node = DetectionMarkerNode()
     rclpy.spin(node)

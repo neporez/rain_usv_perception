@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-"""
-replay_check.py -- 파이프라인 동작 확인: 일정 시간 동안 점군 / 탐지 / 추적 토픽을 세고 요약을 출력한다.
+## @file
+#  @brief bag 재생 / 실센서 동작 확인 도구: 일정 시간 동안 점군 / 탐지 / 추적 토픽을 세고 요약을 출력.
+
+"""!
+@brief 파이프라인 동작 확인: 일정 시간 동안 점군 / 탐지 / 추적 토픽을 세고 요약을 출력한다.
 
     source <repo>/env.sh
     ros2 launch lidar_perception_bringup perception.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<json> &
@@ -24,7 +27,13 @@ from lidar_perception_interfaces.msg import Object3DArray, TrackedObject3DArray
 
 
 class Checker(Node):
+    """! @brief 점군 / 탐지 / 추적 / clock 토픽을 구독해 수신 통계를 모으는 노드. """
+
     def __init__(self, a):
+        """!
+        @brief 구독자 생성.
+        @param a argparse 결과 (토픽 이름들).
+        """
         super().__init__("replay_check")
         be = QoSProfile(depth=5, reliability=QoSReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(PointCloud2, a.points_topic, self.on_pc, be)
@@ -57,6 +66,9 @@ class Checker(Node):
 
 
 def main():
+    """!
+    @brief 명령행 진입점: --seconds 동안 수집한 뒤 요약을 출력하고 RESULT OK / FAIL 로 종료 코드를 정한다.
+    """
     ap = argparse.ArgumentParser()
     ap.add_argument("--seconds", type=float, default=60.0)
     ap.add_argument("--points-topic", default="/dev/lidar/points")

@@ -1,5 +1,8 @@
-"""
-extract_ouster_metadata -- rosbag2 bag 에서 Ouster 센서 metadata(JSON, /dev/lidar/metadata std_msgs/String)를 파일로 꺼낸다.
+## @file
+#  @brief rosbag2 bag 에서 Ouster 센서 metadata(JSON)를 파일로 꺼내는 도구 (extract_ouster_metadata).
+
+"""!
+@brief rosbag2 bag 에서 Ouster 센서 metadata(JSON, /dev/lidar/metadata std_msgs/String)를 파일로 꺼낸다.
 
 드라이버는 metadata 를 bag 시작 시 한 번만(latched) 기록하므로 `ros2 bag play --start-offset ...` 으로 중간부터 재생하면
 ouster_packet_node 가 metadata 를 받지 못한다. 그때는 이 도구로 JSON 을 뽑아 `metadata_path` 파라미터(또는 launch 인자
@@ -13,6 +16,11 @@ import sys
 
 
 def main(argv=None):
+    """!
+    @brief 명령행 진입점: bag 의 첫 metadata 메시지를 읽어 JSON 파일로 저장.
+    @param argv 명령행 인자 (None 이면 sys.argv).
+    @return 0 성공, 1 메시지 없음.
+    """
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("bag", help="rosbag2 directory (mcap or sqlite3)")
     ap.add_argument("-o", "--out", default="lidar_metadata.json")
