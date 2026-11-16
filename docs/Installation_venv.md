@@ -17,12 +17,12 @@
 
 ## 빠른 설치 (스크립트)
 
-아래 1~10절을 그대로 수행하는 스크립트가 `docs/install.sh` 입니다. ROS2 Lyrical 과 NVIDIA 드라이버(580 이상)만 미리 있으면 됩니다.
+아래 1~10절을 그대로 수행하는 스크립트가 `docs/installation.sh` 입니다. ROS2 Lyrical 과 NVIDIA 드라이버(580 이상)만 미리 있으면 됩니다.
 
 ```bash
 cd <워크스페이스>/src/<원하는 위치>                 # 저장소는 src/ 아래 어느 하위 폴더에 있어도 됩니다 (예: src/lidar_detection/)
 git clone --recursive -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
-bash rain_usv_perception/docs/install.sh          # sudo 1회(CUDA apt), 나머지는 사용자 권한
+bash rain_usv_perception/docs/installation.sh          # sudo 1회(CUDA apt), 나머지는 사용자 권한
 source rain_usv_perception/env.sh                 # 이후 매 터미널에서: ROS2 + venv + 워크스페이스 + CUDA 환경
 ```
 
@@ -233,6 +233,17 @@ perception_env
 ros2 topic hz /dev/lidar/points          # 입력 10 Hz
 ros2 topic echo /detection/objects --once
 ```
+
+## 11. 동작 검증 (bag 재생)
+
+```bash
+source <repo>/env.sh
+ros2 launch lidar_perception_bringup perception.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<bag>/lidar_metadata.json &
+ros2 bag play <bag> --clock &
+python3 <repo>/tools/replay_check.py --seconds 60 --expect-tracking     # RESULT: OK 이면 정상
+```
+`tools/replay_check.py` 는 점군 / 탐지 / 추적 토픽의 수신 수와 주기를 요약합니다. PointCloud2 bag 이면 `input:=packets` 와
+`ouster_metadata_path` 를 빼면 됩니다.
 
 ## 문제 해결
 
