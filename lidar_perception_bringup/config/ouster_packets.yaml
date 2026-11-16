@@ -1,0 +1,11 @@
+# Ouster 원시 패킷 -> PointCloud2 (input:=packets 일 때만 실행)
+ouster_packet_node:
+  ros__parameters:
+    packets_topic: "/dev/lidar/lidar_packets"
+    metadata_topic: "/dev/lidar/metadata"    # 드라이버가 latched 로 발행하는 센서 metadata JSON
+    metadata_path: ""                        # 토픽이 없으면 JSON 파일 경로 (예: lidar_metadata.json)
+    output_topic: "/dev/lidar/points"
+    frame_id: "os_lidar"
+    point_frame: "lidar"                     # 드라이버의 point_cloud_frame(os_lidar)와 동일
+    stamp_mode: "driver"                     # 드라이버와 동일한 시각 규약(직전 프레임 첫 패킷 시각); "scan_start" = 이 프레임 첫 패킷 시각
+    packet_qos_depth: 4096

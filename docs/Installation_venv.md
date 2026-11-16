@@ -97,7 +97,7 @@ perception_env
 pip install torch==2.12.0 torchvision==0.27.0 --index-url https://download.pytorch.org/whl/cu130
 pip install numpy==2.4.6 llvmlite==0.48.0 numba==0.66.0 tensorboardX==2.6.5 \
     easydict==1.13 scikit-image tqdm==4.67.3 SharedArray==3.2.4 \
-    opencv-python pyquaternion pyyaml
+    opencv-python pyquaternion pyyaml ouster-sdk     # ouster-sdk: 원시 패킷 입력(input:=packets)용
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"   # True 이어야 함
 ```
 
@@ -191,7 +191,9 @@ venv 폴더를 워크스페이스 안에 만들었다면 그 폴더에도 `COLCO
   ```
   다른 모델을 쓰려면 `lidar_perception_bringup/config/detection.yaml`의 `ckpt_path`를 바꿉니다.
   (파일은 model_state만 담은 30 MB 추론용이며, 학습 재개용 optimizer 상태는 없습니다.)
-- 입력 PointCloud2에는 `x`, `y`, `z`, `intensity` 필드가 있어야 하며(Ouster 기본 출력), 모델은 x, y, z만 사용합니다.
+- 입력은 두 가지입니다. (1) PointCloud2 `/dev/lidar/points`(`x`, `y`, `z`, `intensity` 필드 필요, Ouster 드라이버 기본 출력), (2) Ouster 원시 패킷
+  `/dev/lidar/lidar_packets` + latched metadata `/dev/lidar/metadata` → launch 인자 `input:=packets` 로 `ouster_packet_node` 가 PointCloud2 로 변환.
+  모델은 x, y, z만 사용합니다.
 - 출력 `Object3D`는 9자유도(yaw, roll, pitch)입니다.
 
 ## 10. 실행 및 확인

@@ -25,6 +25,8 @@ setup(
     entry_points={
         'console_scripts': [
             'lidar_detection_node = lidar_perception_detection.detection_node:main',
+            'ouster_packet_node = lidar_perception_detection.ouster_packet_node:main',
+            'extract_ouster_metadata = lidar_perception_detection.ouster_metadata_tool:main',
         ],
     },
 )
