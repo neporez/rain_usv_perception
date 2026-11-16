@@ -1,0 +1,97 @@
+# KRISO boat detector (VoxelNeXt, 9-DoF boxes) -- INFERENCE-ONLY config for rain_usv_perception.
+# Self-contained: no _BASE_CONFIG_, no dataset paths / infos / gt-sampling / augmentation / optimizer.
+# Must stay identical to the training config (OpenPCDet tools/cfgs/kriso_models/kriso_voxelnext.yaml) in:
+#   POINT_CLOUD_RANGE, BOX_DOF, POINT_FEATURE_ENCODING, DATA_PROCESSOR (voxel size, points per voxel), MODEL.
+# Input points: (N, 3) float32 x, y, z in the sensor frame (no intensity). Output boxes: [x, y, z, dx, dy, dz, yaw, roll, pitch].
+CLASS_NAMES: ['boat']
+
+DATA_CONFIG:
+    DATASET: 'KrisoDataset'
+    DATA_PATH: ''                      # unused at inference
+    POINT_CLOUD_RANGE: [-200, -200, -40, 200, 200, 40]
+    BOX_DOF: 9                         # 9-DoF boxes (yaw, roll, pitch); the model has the 'tilt' head
+    NUM_POINT_FEATURES: 3
+
+    POINT_FEATURE_ENCODING: {
+        encoding_type: absolute_coordinates_encoding,
+        used_feature_list: ['x', 'y', 'z'],
+        src_feature_list: ['x', 'y', 'z'],
+    }
+
+    DATA_PROCESSOR:
+        - NAME: mask_points_and_boxes_outside_range
+          REMOVE_OUTSIDE_BOXES: True
+
+        - NAME: shuffle_points
+          SHUFFLE_ENABLED: {
+            'train': True,
+            'test': False               # deterministic inference (training evaluation used True)
+          }
+
+        - NAME: transform_points_to_voxels
+          VOXEL_SIZE: [0.4, 0.4, 0.8]
+          MAX_POINTS_PER_VOXEL: 20
+          MAX_NUMBER_OF_VOXELS: {
+            'train': 120000,
+            'test': 160000
+          }
+
+MODEL:
+    NAME: VoxelNeXt
+
+    VFE:
+        NAME: MeanVFE
+
+    BACKBONE_3D:
+        NAME: VoxelResBackBone8xVoxelNeXt
+        CHANNELS: [16, 32, 64, 128, 128]
+        OUT_CHANNEL: 128
+
+    DENSE_HEAD:
+        NAME: VoxelNeXtHead
+        CLASS_AGNOSTIC: False
+        INPUT_FEATURES: 128
+        CLASS_NAMES_EACH_HEAD: [
+            ['boat'],
+        ]
+        KERNEL_SIZE_HEAD: 1
+        SHARED_CONV_CHANNEL: 128
+        USE_BIAS_BEFORE_NORM: True
+        NUM_HM_CONV: 2
+        DROPOUT: 0.0                   # the deployment checkpoints were trained with dropout 0 (a dropout-trained ckpt needs its rate here)
+        SEPARATE_HEAD_CFG:
+            HEAD_ORDER: ['center', 'center_z', 'dim', 'rot', 'tilt']
+            HEAD_DICT: {
+                'center': {'out_channels': 2, 'num_conv': 2},
+                'center_z': {'out_channels': 1, 'num_conv': 2},
+                'dim': {'out_channels': 3, 'num_conv': 2},
+                'rot': {'out_channels': 2, 'num_conv': 2},
+                'tilt': {'out_channels': 2, 'num_conv': 2},
+            }
+
+        TARGET_ASSIGNER_CONFIG:        # needed by the head constructor, not used at inference
+            FEATURE_MAP_STRIDE: 8
+            NUM_MAX_OBJS: 500
+            GAUSSIAN_OVERLAP: 0.1
+            MIN_RADIUS: 2
+
+        LOSS_CONFIG:                   # needed by the head constructor, not used at inference
+            LOSS_WEIGHTS: {
+                'cls_weight': 1.0,
+                'loc_weight': 0.25,
+                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 1.0, 1.0]
+            }
+
+        POST_PROCESSING:
+            SCORE_THRESH: 0.1          # the ROS node applies its own score_threshold (0.3) on top
+            POST_CENTER_LIMIT_RANGE: [-200, -200, -40, 200, 200, 40]
+            MAX_OBJ_PER_SAMPLE: 500
+            NMS_CONFIG:
+                NMS_TYPE: nms_gpu
+                NMS_THRESH: 0.05
+                NMS_PRE_MAXSIZE: 1000
+                NMS_POST_MAXSIZE: 83
+
+    POST_PROCESSING:
+        RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
+        EVAL_METRIC: once

@@ -107,7 +107,7 @@ RUN git clone -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
 # 체크포인트(.pth)는 git에 없음 - 아래 중 하나로 반드시 추가할 것
 #   (a) docker/checkpoints/ 에 .pth 넣고 COPY로 포함 (아래 주석 해제)
 #   (b) 컨테이너 실행 후 docker cp로 주입
-# COPY checkpoints/voxelnext04_epoch_160.pth \
+# COPY checkpoints/voxelnext_kriso_v4_real_epoch_80.pth \
 #      /ros2_ws/src/rain_usv_perception/lidar_perception_detection/lidar_perception_detection/cfgs/ckpt/
 
 WORKDIR /ros2_ws

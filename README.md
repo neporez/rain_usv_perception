@@ -6,7 +6,13 @@ ROS2 기반 라이다 포인트클라우드 객체 인식 및 추적 패키지�
 
 ## Installation
 
-자세한 설치 과정은 [docs/Installation.md](./docs/Installation.md)를 참고하세요.
+설치 방법은 세 가지입니다.
+
+| 방식 | 문서 |
+|---|---|
+| Ubuntu 26.04 로컬, conda / Docker 없이 (venv) — **배포 기본** | [docs/Installation_venv.md](./docs/Installation_venv.md) |
+| conda (RoboStack) | [docs/Installation.md](./docs/Installation.md) |
+| Docker | [docker/Dockerfile](./docker/Dockerfile), `docker compose -f docker/docker-compose.yml up -d` |
 
 ---
 
@@ -17,7 +23,7 @@ PointCloud2 (LiDAR, 10Hz)
         │
         ▼
 ┌────────────────────┐
-│   detection node   │  VoxelNeXt (OpenPCDet)
+│   detection node   │  VoxelNeXt 9-DoF (OpenPCDet, KRISO fork)
 └────────────────────┘
         │  Object3DArray
         ▼
@@ -49,7 +55,7 @@ PointCloud2 (LiDAR, 10Hz)
 ## Usage
 
 ```bash
-voxelnext_ros_jazzy
+perception_env            # venv 설치 기준 (conda 설치는 lidar_perception_ros_lyrical)
 source ~/ros2_ws/install/setup.bash
 
 # Detection 노드만 실행
@@ -68,7 +74,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 
 | 파일 | 주요 파라미터 |
 |---|---|
-| `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`, `ckpt_path`, `score_threshold` |
+| `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`(기본 `cfgs/kriso_models/kriso_voxelnext_deploy.yaml`), `ckpt_path`(기본 `cfgs/ckpt/voxelnext_kriso_v4_real_epoch_80.pth`, git 미포함), `score_threshold` |
 | `tracking.yaml` | `detection_topic`, `gnss_topic`, `tracker_config_path` |
 | `viz.yaml` | `tracking_topic`, `detection_topic` |
 

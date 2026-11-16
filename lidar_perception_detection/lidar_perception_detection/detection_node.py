@@ -12,8 +12,8 @@ class DetectionNode(Node):
 
         self.declare_parameter("pointcloud_topic", "/dev/lidar/points")
         self.declare_parameter("pointcloud_qos_reliability", "best_effort")
-        self.declare_parameter("model_config_path", "cfgs/kriso_models/cbgs_voxel01_voxelnext.yaml")
-        self.declare_parameter("ckpt_path", "cfgs/ckpt/voxelnext_epoch_160.pth")
+        self.declare_parameter("model_config_path", "cfgs/kriso_models/kriso_voxelnext_deploy.yaml")
+        self.declare_parameter("ckpt_path", "cfgs/ckpt/voxelnext_kriso_v4_real_epoch_80.pth")
         self.declare_parameter("score_threshold", 0.3)
         self.declare_parameter("output_topic", "/detection/objects")
 
@@ -53,6 +53,8 @@ class DetectionNode(Node):
             obj.center.x, obj.center.y, obj.center.z = det["center"]
             obj.size.x, obj.size.y, obj.size.z = det["size"]
             obj.yaw = det["yaw"]
+            obj.roll = det["roll"]
+            obj.pitch = det["pitch"]
             obj.class_id = det["class_id"]
             obj.class_name = det["class_name"]
             obj.score = det["score"]

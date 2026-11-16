@@ -49,10 +49,11 @@ class ModelInferencer:
             except Exception:
                 new_config = yaml.safe_load(f)
 
-        base_cfg = new_config['DATA_CONFIG']['_BASE_CONFIG_']
+        # self-contained deployment configs have no _BASE_CONFIG_; a relative one is resolved against the package dir
+        base_cfg = new_config['DATA_CONFIG'].get('_BASE_CONFIG_')
         if base_cfg and not os.path.isabs(base_cfg):
             new_config['DATA_CONFIG']['_BASE_CONFIG_'] = os.path.join(_PACKAGE_DIR, base_cfg)
-            
+
 
         merge_new_config(config=cfg, new_config=new_config)
         self.class_names = cfg.CLASS_NAMES 
@@ -72,12 +73,22 @@ class ModelInferencer:
         self.model.to(self.device)
         self.model.eval()
 
+        # number of input point columns the model was trained with (KRISO VoxelNeXt: 3 = x, y, z, no intensity);
+        # the point feature encoder asserts points.shape[1] == len(src_feature_list)
+        self.num_point_features = len(cfg.DATA_CONFIG.POINT_FEATURE_ENCODING.src_feature_list)
+        # 7 = [x, y, z, dx, dy, dz, yaw], 9 = [..., roll, pitch] (tilt head)
+        self.box_dof = int(cfg.DATA_CONFIG.get('BOX_DOF', 7))
+
     @torch.no_grad()
     def predict(self, points: np.ndarray) -> list[dict]:
         """
-        points: (N, 4) float32 numpy [x, y, z, intensity]
-        return: [{center, size, yaw, class_id, class_name, score}, ...]
+        points: (N, >= 3) float32 numpy [x, y, z, (intensity, ...)]; only the first num_point_features columns are used
+        return: [{center, size, yaw, roll, pitch, class_id, class_name, score}, ...]
         """
+        if points.shape[1] < self.num_point_features:
+            raise ValueError(f"model expects {self.num_point_features} point features, got {points.shape[1]}")
+        points = np.ascontiguousarray(points[:, :self.num_point_features], dtype=np.float32)
+
         # 1. 전처리 (voxelize 포함, pcdet 기능 재사용)
         data_dict = self._dataset.prepare_data({"points": points, "frame_id": 0})
         data_dict = self._dataset.collate_batch([data_dict])
@@ -96,12 +107,15 @@ class ModelInferencer:
         # 4. Object3D 필드 스키마로 변환
         detections = []
         for box, score, label in zip(pred_boxes, pred_scores, pred_labels):
-            x, y, z, dx, dy, dz, yaw = box
+            x, y, z, dx, dy, dz, yaw = box[:7]
+            roll, pitch = (float(box[7]), float(box[8])) if box.shape[0] >= 9 else (0.0, 0.0)
             class_id = int(label) - 1
             detections.append({
                 "center": (float(x), float(y), float(z)),
                 "size": (float(dx), float(dy), float(dz)),
                 "yaw": float(yaw),
+                "roll": roll,
+                "pitch": pitch,
                 "class_id": class_id,
                 "class_name": self.class_names[class_id],
                 "score": float(score),
