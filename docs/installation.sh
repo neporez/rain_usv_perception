@@ -143,10 +143,11 @@ ok "spconv ready"
 
 # ------------------------------------------------------------------------------------------------- 5. OpenPCDet
 log "5/8 OpenPCDet (submodule) -> venv"
-if ! python -c "import pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda" 2>/dev/null; then
+# (import torch first: the CUDA op links against torch's libc10.so, which only resolves once torch is loaded)
+if ! python -c "import torch, pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda" 2>/dev/null; then
   pip install --no-cache-dir -e "$REPO/third_party/OpenPCDet" --no-build-isolation
 fi
-python -c "import pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda; print('pcdet ok', pcdet.__file__)"
+python -c "import torch, pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda; print('pcdet ok', pcdet.__file__)"
 ok "pcdet ready"
 
 # ------------------------------------------------------------------------------------------------- 6. checkpoint
