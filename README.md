@@ -10,7 +10,7 @@ ROS2 기반 라이다 포인트클라우드 객체 인식 및 추적 패키지�
 
 | 방식 | 문서 |
 |---|---|
-| Ubuntu 26.04 로컬, conda / Docker 없이 (venv) — **배포 기본** | [docs/Installation_venv.md](./docs/Installation_venv.md) |
+| Ubuntu 26.04 로컬, conda / Docker 없이 (venv) — **배포 기본**: `git clone --recursive` → `bash docs/install.sh` → `source env.sh` | [docs/Installation_venv.md](./docs/Installation_venv.md) |
 | conda (RoboStack) | [docs/Installation.md](./docs/Installation.md) |
 | Docker | [docker/Dockerfile](./docker/Dockerfile), `docker compose -f docker/docker-compose.yml up -d` |
 
@@ -55,8 +55,7 @@ PointCloud2 (LiDAR, 10Hz)  ◄── (input:=packets) ouster_packet_node: /dev/l
 ## Usage
 
 ```bash
-perception_env            # venv 설치 기준 (conda 설치는 lidar_perception_ros_lyrical)
-source ~/ros2_ws/install/setup.bash
+source <repo>/env.sh      # venv 설치 기준 (docs/install.sh 가 생성; conda 설치는 lidar_perception_ros_lyrical)
 
 # Detection 노드만 실행 (입력: /dev/lidar/points PointCloud2)
 ros2 launch lidar_perception_bringup detection_only.launch.py

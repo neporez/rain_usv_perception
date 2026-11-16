@@ -15,6 +15,25 @@
 
 ---
 
+## 빠른 설치 (스크립트)
+
+아래 1~10절을 그대로 수행하는 스크립트가 `docs/install.sh` 입니다. ROS2 Lyrical 과 NVIDIA 드라이버(580 이상)만 미리 있으면 됩니다.
+
+```bash
+cd <워크스페이스>/src/<원하는 위치>                 # 저장소는 src/ 아래 어느 하위 폴더에 있어도 됩니다 (예: src/lidar_detection/)
+git clone --recursive -b ros-lyrical https://github.com/neporez/rain_usv_perception.git
+bash rain_usv_perception/docs/install.sh          # sudo 1회(CUDA apt), 나머지는 사용자 권한
+source rain_usv_perception/env.sh                 # 이후 매 터미널에서: ROS2 + venv + 워크스페이스 + CUDA 환경
+```
+
+- 멱등(idempotent): 이미 된 단계는 건너뛰므로 중간에 끊겨도 다시 실행하면 됩니다.
+- 시스템에 남기는 것은 CUDA apt 패키지와 `/usr/local/cuda-13.1/.../math_functions.h` 패치뿐입니다. PyTorch, spconv, OpenPCDet,
+  ouster-sdk, colcon 은 venv 안에만 설치되고 `~/.bashrc` 는 건드리지 않습니다(환경 파일 `<repo>/env.sh` 생성, git 미추적).
+- 워크스페이스에 다른 팀의 패키지가 함께 있어도 됩니다. `colcon build --packages-up-to lidar_perception_bringup lidar_perception_viz`
+  로 이 저장소의 패키지만 빌드하고, `ros2_message_packages/` 의 메시지 패키지(gnss_msgs 등)가 워크스페이스에 이미 있으면
+  우리 사본에 `COLCON_IGNORE` 를 넣어 중복 오류를 피합니다.
+- 옵션은 환경 변수로 줍니다: `VENV`, `CKPT=real|sim2000|none`, `FULL_CUDA=1`, `SKIP_APT=1`, `SKIP_WS_BUILD=1`, `ARCH`(compute capability).
+
 ## 0. 사전 조건
 
 - Ubuntu 26.04 x86_64, NVIDIA GPU, **NVIDIA 드라이버 580 이상**(CUDA 13 지원). 확인:
@@ -160,9 +179,10 @@ tracker(`third_party/tracker_task/tracker`)는 `lidar_perception_tracking` 패�
 ```bash
 cd ~/ros2_ws
 perception_env
-colcon build --symlink-install
+colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_viz   # 이 저장소의 패키지만
 source install/setup.bash
 ```
+다른 패키지가 같은 워크스페이스에 있어도 위 명령은 이 저장소의 패키지(와 그 의존 메시지 패키지)만 빌드합니다.
 
 주의: `gnss_msgs` 등 메시지 패키지는 저장소의 `ros2_message_packages/`에 포함되어 있습니다. 같은 이름의 패키지가
 워크스페이스에 또 있으면 colcon이 중복 오류를 내므로 한쪽에 `COLCON_IGNORE` 파일을 둡니다.
