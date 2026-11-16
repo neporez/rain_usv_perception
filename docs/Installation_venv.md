@@ -163,11 +163,24 @@ venv 폴더를 워크스페이스 안에 만들었다면 그 폴더에도 `COLCO
 - 설정: `lidar_perception_detection/lidar_perception_detection/cfgs/kriso_models/kriso_voxelnext_deploy.yaml`
   (추론 전용, 저장소에 포함). 학습 설정(OpenPCDet `tools/cfgs/kriso_models/kriso_voxelnext.yaml`)과 입력 범위·복셀
   크기·모델 구조가 같아야 하며, 체크포인트를 바꿀 때 함께 확인합니다.
-- 체크포인트(`.pth`, 약 90 MB)는 git에 없습니다. 아래 경로에 둡니다.
+- 체크포인트(`.pth`)는 git에 없고 **GitHub Release**([v1.0.0](https://github.com/neporez/rain_usv_perception/releases/tag/v1.0.0))에 있습니다.
+  두 모델이 제공되며 설정 파일은 둘 다 `kriso_voxelnext_deploy.yaml`입니다.
+
+  | 파일 | 학습 데이터 | 용도 |
+  |---|---|---|
+  | `voxelnext_kriso_real_epoch_80.pth` | 실측 2,551 프레임 | **기본값** |
+  | `voxelnext_kriso_real_sim2000_epoch_80.pth` | 실측 2,551 + 가상 2,000 프레임 | 대형 선박(40 m 초과) 재현율 향상 버전 |
+
+  ```bash
+  CKPT_DIR=~/ros2_ws/src/rain_usv_perception/lidar_perception_detection/lidar_perception_detection/cfgs/ckpt
+  cd $CKPT_DIR
+  wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/voxelnext_kriso_real_epoch_80.pth
+  wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/voxelnext_kriso_real_sim2000_epoch_80.pth   # 선택
+  wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/SHA256SUMS
+  sha256sum -c SHA256SUMS --ignore-missing                 # OK 가 나와야 함
   ```
-  lidar_perception_detection/lidar_perception_detection/cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth
-  ```
-  파일 이름이 다르면 `lidar_perception_bringup/config/detection.yaml`의 `ckpt_path`를 맞춥니다.
+  다른 모델을 쓰려면 `lidar_perception_bringup/config/detection.yaml`의 `ckpt_path`를 바꿉니다.
+  (파일은 model_state만 담은 30 MB 추론용이며, 학습 재개용 optimizer 상태는 없습니다.)
 - 입력 PointCloud2에는 `x`, `y`, `z`, `intensity` 필드가 있어야 하며(Ouster 기본 출력), 모델은 x, y, z만 사용합니다.
 - 출력 `Object3D`는 9자유도(yaw, roll, pitch)입니다.
 

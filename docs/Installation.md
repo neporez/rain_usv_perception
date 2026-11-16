@@ -189,12 +189,23 @@ source install/setup.bash
 
 ## 4. Model checkpoints
 
-이 저장소는 학습된 가중치 파일(`.pth`)을 포함하지 않습니다.
+체크포인트(`.pth`)는 git에 없고 **GitHub Release**([v1.0.0](https://github.com/neporez/rain_usv_perception/releases/tag/v1.0.0))에 있습니다.
+두 모델이 제공되며 설정 파일은 둘 다 `kriso_voxelnext_deploy.yaml`입니다.
 
-- 다운로드: **[링크 추가 예정]**
-- 저장 경로: `rain_usv_perception/lidar_perception_detection/lidar_perception_detection/cfgs/ckpt/`
+| 파일 | 학습 데이터 | 용도 |
+|---|---|---|
+| `voxelnext_kriso_real_epoch_80.pth` | 실측 2,551 프레임 | **기본값** |
+| `voxelnext_kriso_real_sim2000_epoch_80.pth` | 실측 2,551 + 가상 2,000 프레임 | 대형 선박(40 m 초과) 재현율 향상 버전 |
 
-빌드 및 환경 설정이 끝난 뒤, 이 파일들을 위 경로에 위치시켜야
-`detection_node`가 정상 동작합니다.
+```bash
+CKPT_DIR=~/ros2_ws/src/rain_usv_perception/lidar_perception_detection/lidar_perception_detection/cfgs/ckpt
+cd $CKPT_DIR
+wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/voxelnext_kriso_real_epoch_80.pth
+wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/voxelnext_kriso_real_sim2000_epoch_80.pth   # 선택
+wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing                 # OK 가 나와야 함
+```
+다른 모델을 쓰려면 `lidar_perception_bringup/config/detection.yaml`의 `ckpt_path`를 바꿉니다.
+(파일은 model_state만 담은 30 MB 추론용이며, 학습 재개용 optimizer 상태는 없습니다.)
 
 ---
