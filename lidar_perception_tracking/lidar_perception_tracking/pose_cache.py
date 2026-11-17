@@ -144,13 +144,31 @@ class PoseCache:
             yaw = math.atan2((1 - w) * math.sin(p0[3]) + w * math.sin(p1[3]),
                              (1 - w) * math.cos(p0[3]) + w * math.cos(p1[3]))
             return {"x": x, "y": y, "z": z, "yaw_rad": yaw, "utmzone": p1[4], "dt": 0.0, "mode": "interp"}
-        # 버퍼 밖: 가장 가까운 끝 샘플을 그대로 쓴다 (외삽 없음), 너무 멀면 None
+        # 버퍼 밖: 가장 가까운 끝 샘플을 그대로 쓴다 (외삽 없음), 너무 멀면 None.
+        # 허용 거리는 max_age_sec 와 (pose 간격 x 1.5) 중 큰 값: 1 Hz GNSS 만 있는 bag 에서는 1.5 s 까지 마지막 pose 를 유지한다.
         j = 0 if i == 0 else len(ts) - 1
         dt = q - ts[j]
-        if abs(dt) > self.max_age_sec:
+        if abs(dt) > self.effective_max_age():
             return None
         p = self._p[j]
         return {"x": p[0], "y": p[1], "z": p[2], "yaw_rad": p[3], "utmzone": p[4], "dt": dt, "mode": "hold"}
+
+    def pose_interval(self):
+        """!
+        @brief 버퍼 안 pose 샘플 간격의 중앙값 [s] (수신률 추정). 샘플이 2개 미만이면 None.
+        """
+        if len(self._t) < 2:
+            return None
+        ts = list(self._t)[-20:]
+        d = sorted(b - a for a, b in zip(ts[:-1], ts[1:]))
+        return d[len(d) // 2]
+
+    def effective_max_age(self):
+        """!
+        @brief 버퍼 끝 밖의 질의에 마지막 pose 를 그대로 쓸 수 있는 최대 거리 [s] = max(max_age_sec, 1.5 x pose 간격).
+        """
+        iv = self.pose_interval()
+        return max(self.max_age_sec, 1.5 * iv) if iv else self.max_age_sec
 
     def get_pose_matrix(self, query_time_sec: float):
         """!

@@ -44,6 +44,10 @@ class TrackingNode(Node):
         # pose source: 10 Hz hemisphere GNSS (= /system/gnss/pose) by default; /dev/spatial_fog_dual/pose (100 Hz INS)
         # also works. The 1 Hz /digital_bridge/gnss/pose is NOT recommended (would need extrapolation).
         self.declare_parameter("gnss_topic", "/dev/gnss/hemisphere/pose")
+        # additional pose topics fed into the same buffer (same gnss_msgs/Pose type). Default adds /system/gnss/pose: on the
+        # 2026-11 recordings it duplicates the hemisphere topic (duplicates are dropped), on the 2026-06 recordings it is the only
+        # valid GNSS (1 Hz; the Spatial FOG had no fix there) -> the node works on both without changing parameters.
+        self.declare_parameter("gnss_topics_extra", ["/system/gnss/pose"])
         self.declare_parameter("pose_time_source", "auto")         # 'auto' (header or receive time, whichever matches the LiDAR stamps) | 'header' | 'receive' | 'gnss_time'
         self.declare_parameter("pose_max_age_sec", 0.5)            # LiDAR stamp outside the pose buffer by more than this -> frame skipped
         self.declare_parameter("pose_buffer_sec", 5.0)
@@ -67,12 +71,12 @@ class TrackingNode(Node):
             heading_convention=self.get_parameter("heading_convention").value,
             time_offset_sec=self.get_parameter("pose_time_offset_sec").value,
         )
-        self.get_logger().info(f"pose source {gnss_topic} (time: {self.pose_cache.time_source}, heading: {self.pose_cache.heading_convention}, max age {self.pose_cache.max_age_sec}s)")
 
-        ## GNSS/INS pose 구독자
-        self.gnss_sub = self.create_subscription(
-            Pose, gnss_topic, self.on_gnss, 100       # 100 Hz INS 소스도 밀리지 않도록 깊이 100
-        )
+        ## GNSS/INS pose 구독자들 (gnss_topic + gnss_topics_extra, 모두 같은 버퍼로)
+        topics = [gnss_topic] + [t for t in self.get_parameter("gnss_topics_extra").value if t and t != gnss_topic]
+        self.gnss_subs = [self.create_subscription(Pose, t, self.on_gnss, 100) for t in topics]   # 100 Hz INS 소스도 밀리지 않도록 깊이 100
+        self._pose_topics = topics
+        self.get_logger().info(f"pose sources {topics} (time: {self.pose_cache.time_source}, heading: {self.pose_cache.heading_convention}, max age {self.pose_cache.max_age_sec}s, longer for slow GNSS)")
         ## 탐지 결과(Object3DArray) 구독자
         self.detection_sub = self.create_subscription(
             Object3DArray, detection_topic, self.on_detections, 10
