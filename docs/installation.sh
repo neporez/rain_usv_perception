@@ -77,10 +77,17 @@ elif [ -x "$CUDA_HOME_DIR/bin/nvcc" ]; then
 else
   log "1/8 CUDA ${CUDA_VER} via apt (sudo)"
   export DEBIAN_FRONTEND=noninteractive
-  if ! apt-cache policy "cuda-nvcc-${CUDA_VER}" 2>/dev/null | grep -q Candidate; then
+  # unattended-upgrades may hold the dpkg lock right after boot: wait for it (up to 15 min) instead of failing
+  for i in $(seq 1 90); do
+    sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || break
+    [ "$i" = "1" ] && echo "[wait] dpkg lock is held (unattended-upgrades?) -- waiting"; sleep 10
+  done
+  # (no "grep -q" in a pipeline under pipefail: SIGPIPE to apt-cache would make the test fail)
+  CAND="$(apt-cache policy "cuda-nvcc-${CUDA_VER}" 2>/dev/null | grep Candidate | grep -v '(none)' || true)"
+  if [ -z "$CAND" ]; then
     log "adding the NVIDIA CUDA apt repository"
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2604/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb
-    sudo dpkg -i /tmp/cuda-keyring.deb; sudo apt-get -o DPkg::Lock::Timeout=600 update
+    sudo apt-get -o DPkg::Lock::Timeout=600 install -y /tmp/cuda-keyring.deb; sudo apt-get -o DPkg::Lock::Timeout=600 update
   fi
   # DPkg::Lock::Timeout: wait for unattended-upgrades instead of failing on the dpkg lock
   if [ "${FULL_CUDA:-0}" = "1" ]; then sudo apt-get -o DPkg::Lock::Timeout=600 install -y "cuda-toolkit-${CUDA_VER}"
