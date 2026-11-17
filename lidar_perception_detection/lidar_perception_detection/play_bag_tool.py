@@ -33,9 +33,34 @@ def load_files(bag):
         sys.exit(f"metadata.yaml not found in {bag} (give the bag FOLDER, not one .mcap file)")
     m = yaml.safe_load(open(meta))["rosbag2_bagfile_information"]
     t0 = m["starting_time"]["nanoseconds_since_epoch"]
-    files = m.get("files") or [{"path": p, "starting_time": {"nanoseconds_since_epoch": t0}, "duration": m["duration"]} for p in m["relative_file_paths"]]
+    files = m.get("files") or []
+    if len(files) != len(m["relative_file_paths"]) or len({f["starting_time"]["nanoseconds_since_epoch"] for f in files}) < len(files):
+        files = _scan_pieces(bag, m["relative_file_paths"], m["duration"]["nanoseconds"])      # old / reindexed metadata: no per-piece times
     rows = [(f["path"], (f["starting_time"]["nanoseconds_since_epoch"] - t0) / 1e9, f["duration"]["nanoseconds"] / 1e9) for f in files]
     return t0, sorted(rows, key=lambda r: r[1])
+
+
+def _scan_pieces(bag, paths, total_ns):
+    """!
+    @brief 조각별 시작 시각이 metadata 에 없을 때(옛 형식, `ros2 bag reindex` 결과) 각 조각 파일을 직접 열어 첫 메시지 시각을 읽는다.
+    @param bag bag 폴더.
+    @param paths metadata 의 relative_file_paths.
+    @param total_ns bag 전체 길이 (ns).
+    @return metadata 의 files 항목과 같은 형식의 리스트.
+    """
+    import rosbag2_py
+    out = []
+    for p in paths:
+        r = rosbag2_py.SequentialReader()
+        r.open(rosbag2_py.StorageOptions(uri=os.path.join(bag, p), storage_id=""), rosbag2_py.ConverterOptions("", ""))
+        start = r.read_next()[2] if r.has_next() else None
+        out.append({"path": p, "starting_time": {"nanoseconds_since_epoch": start}, "duration": {"nanoseconds": 0}})
+    out = [f for f in out if f["starting_time"]["nanoseconds_since_epoch"] is not None]
+    out.sort(key=lambda f: f["starting_time"]["nanoseconds_since_epoch"])
+    end = out[0]["starting_time"]["nanoseconds_since_epoch"] + total_ns if out else 0
+    for f, nxt in zip(out, out[1:] + [None]):
+        f["duration"]["nanoseconds"] = (nxt["starting_time"]["nanoseconds_since_epoch"] if nxt else end) - f["starting_time"]["nanoseconds_since_epoch"]
+    return out
 
 
 def main(argv=None):
