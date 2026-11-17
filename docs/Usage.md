@@ -108,15 +108,3 @@ python3 <저장소>/tools/replay_check.py --seconds 60 --expect-tracking   # 60 
 ```
 RViz 에서는 Fixed Frame 이 `os_lidar` 인지, PointCloud2 표시의 Topic 이 `/dev/lidar/points` 이고 Reliability 가 발행자와 맞는지
 (패킷 노드 / Ouster 드라이버 = Best Effort) 확인한다. launch 가 같이 띄우는 RViz 는 이 설정이 들어 있다.
-
-## 5. 안 될 때
-
-| 증상 | 원인 / 조치 |
-|---|---|
-| 아무것도 안 나오고 터미널에 `no sensor metadata yet ... dropping packets` 반복 | 패킷 입력인데 metadata 가 없다. 처음부터 녹화된 bag/실센서가 아니면 `ouster_metadata_path:=` 로 JSON 을 넘긴다 |
-| `No GNSS pose within 0.5s of the LiDAR stamp ... skipping` 반복 | pose 토픽이 없거나(`ros2 topic hz /dev/gnss/hemisphere/pose`) 1 Hz 뿐이거나, `--clock` 만 썼고 `use_sim_time` 은 빠진 경우(둘 다 쓰거나 둘 다 빼기). 탐지는 되고 추적만 멈춘다 |
-| 점군이 1 Hz 안팎, 탐지도 드물게 | `env.sh` 를 읽지 않은 터미널에서 띄움 (Fast DDS 3 의 큰 메시지 유실). 모든 노드를 `env.sh` 읽은 터미널에서 다시 띄운다 |
-| `Model loaded.` 전에 수 분 걸림 | 설치 후 첫 실행의 spconv JIT 컴파일. 한 번만 기다리면 된다 |
-| RViz 에 점군이 없고 오른쪽 상태가 빨간색 | PointCloud2 display 의 Topic/Reliability 또는 Fixed Frame (`os_lidar`) 확인 |
-| `Not updated weight ...` 로그 뒤 이상한 상자 | 설정과 체크포인트 불일치. `kriso_voxelnext_deploy.yaml` + Release 체크포인트 조합인지 확인 |
-| `no kernel image is available` | 이 PC 의 GPU 로 빌드되지 않음 (venv 를 다른 PC 에서 복사해 옴). 이 PC 에서 `docs/installation.sh` 를 다시 실행 |
