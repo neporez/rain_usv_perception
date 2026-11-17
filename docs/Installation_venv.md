@@ -179,7 +179,7 @@ tracker(`third_party/tracker_task/tracker`)는 `lidar_perception_tracking` 패�
 ```bash
 cd ~/ros2_ws
 perception_env
-colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_viz   # 이 저장소의 패키지만
+colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_detection lidar_perception_tracking lidar_perception_viz   # 이 저장소의 패키지만
 source install/setup.bash
 ```
 다른 패키지가 같은 워크스페이스에 있어도 위 명령은 이 저장소의 패키지(와 그 의존 메시지 패키지)만 빌드합니다.

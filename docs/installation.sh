@@ -186,7 +186,7 @@ else
   set +u   # setup files reference unset variables
   source "/opt/ros/$ROS_DISTRO/setup.bash"
   set -u
-  (cd "$WS" && colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_viz)
+  (cd "$WS" && colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_detection lidar_perception_tracking lidar_perception_viz)
   ok "workspace built"
 fi
 
