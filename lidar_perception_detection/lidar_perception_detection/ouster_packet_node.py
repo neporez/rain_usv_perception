@@ -4,13 +4,18 @@
 """!
 @brief /dev/lidar/lidar_packets (ouster_sensor_msgs/PacketMsg) → /dev/lidar/points (sensor_msgs/PointCloud2) 변환 노드.
 
-실시간 센서나 bag 재생이 원시 패킷만 줄 때 탐지 노드 앞에 두는 노드. 센서 metadata(JSON)는 드라이버가 latched 로
-발행하는 /dev/lidar/metadata (std_msgs/String) 또는 metadata_path 파일에서 읽는다. 출력 점군은 드라이버의
+실시간 센서나 bag 재생이 원시 패킷만 줄 때 탐지 노드 앞에 두는 노드. 센서 metadata(JSON)는 패키지에 들어 있는
+config/ouster_metadata.json (metadata_path 가 비어 있을 때의 기본값) 으로 즉시 디코더를 만들고, 드라이버가 latched 로
+발행하는 /dev/lidar/metadata (std_msgs/String) 가 오면 그 내용으로 바꾼다 (센서나 모드가 바뀌어도 토픽이 우선). 출력 점군은 드라이버의
 /dev/lidar/points 와 같은 좌표계(os_lidar)·필드 이름을 쓰되 유효 점만 담는다 (organized 아님).
 bag 재생 시에는 `ros2 bag play --clock` + `use_sim_time:=true` 로 노드 시계를 bag 시각에 맞춰야 GNSS pose 와 시각이 맞는다.
 """
+import json
+import os
+
 import numpy as np
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy, QoSHistoryPolicy
 from std_msgs.msg import String
@@ -28,12 +33,12 @@ class OusterPacketNode(Node):
     """!
     @brief 원시 패킷 구독 → OusterPacketDecoder → PointCloud2 발행.
 
-    센서 metadata 는 드라이버의 latched 토픽(metadata_topic) 또는 파일(metadata_path)에서 받으며, 받기 전의 패킷은
-    버린다(경고). 출력은 드라이버의 /dev/lidar/points 와 같은 좌표계(os_lidar)와 필드 이름(x, y, z, intensity,
+    센서 metadata 는 파일(metadata_path, 비어 있으면 패키지의 config/ouster_metadata.json)로 시작하고, 드라이버의 latched
+    토픽(metadata_topic)이 오면 그 내용으로 교체한다. 파일도 토픽도 없으면 패킷을 버린다(경고). 출력은 드라이버의 /dev/lidar/points 와 같은 좌표계(os_lidar)와 필드 이름(x, y, z, intensity,
     reflectivity, ring, range)을 쓰되 유효 점만 담는다. use_sim_time 일 때 /clock 을 받기 전에는 프레임을 내보내지 않는다.
 
     주요 구성:
-    - on_metadata(): metadata 수신 → 디코더 생성.
+    - on_metadata(): 토픽 metadata 수신 → 디코더 생성 또는 교체.
     - on_packet(): 패킷 1개 → 디코더 → 프레임 완성 시 PointCloud2 발행.
     """
 
@@ -44,14 +49,15 @@ class OusterPacketNode(Node):
         super().__init__("ouster_packet_node")
         self.declare_parameter("packets_topic", "/dev/lidar/lidar_packets")
         self.declare_parameter("metadata_topic", "/dev/lidar/metadata")
-        self.declare_parameter("metadata_path", "")              # JSON 파일 (토픽이 없을 때)
+        self.declare_parameter("metadata_path", "")              # JSON 파일. "" = 패키지의 config/ouster_metadata.json, "none" = 토픽만 기다림
         self.declare_parameter("output_topic", "/dev/lidar/points")
         self.declare_parameter("frame_id", "os_lidar")
         self.declare_parameter("point_frame", "lidar")           # 'lidar' = os_lidar (드라이버와 동일) | 'sensor' = os_sensor
         self.declare_parameter("stamp_mode", "driver")             # 'driver' = ouster_ros 와 동일(직전 프레임 첫 패킷 시각) | 'scan_start'
         self.declare_parameter("packet_qos_depth", 4096)
-        self.declare_parameter("output_qos_reliability", "best_effort")   # 드라이버와 동일(sensor QoS). 큰 점군 유실은 env.sh 의 FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA 로 막는다
+        self.declare_parameter("output_qos_reliability", "reliable")      # Fast DDS 3 는 0.7 MB best-effort 메시지를 같은 PC 안에서도 90 % 유실 -> reliable (구독자도 reliable 이어야 함)
         self.decoder = None
+        self._meta_json = None
         self.frame_id = self.get_parameter("frame_id").value
         self.point_frame = self.get_parameter("point_frame").value
         self.stamp_mode = self.get_parameter("stamp_mode").value
@@ -62,7 +68,11 @@ class OusterPacketNode(Node):
             self._fields.append(PointField(name=n, offset=off, datatype=pf_t, count=1)); off += np.dtype(t).itemsize
 
         path = self.get_parameter("metadata_path").value
-        if path:
+        if path == "":
+            path = os.path.join(get_package_share_directory("lidar_perception_detection"), "config", "ouster_metadata.json")
+            if not os.path.isfile(path):
+                path = "none"
+        if path != "none":
             with open(path) as f:
                 self._init_decoder(f.read(), "file " + path)
         latched = QoSProfile(depth=1, reliability=QoSReliabilityPolicy.RELIABLE, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
@@ -72,7 +82,7 @@ class OusterPacketNode(Node):
                              history=QoSHistoryPolicy.KEEP_LAST)
         self.pkt_sub = self.create_subscription(PacketMsg, self.get_parameter("packets_topic").value, self.on_packet, pkt_qos)
         out_rel = QoSReliabilityPolicy.RELIABLE if self.get_parameter("output_qos_reliability").value == "reliable" else QoSReliabilityPolicy.BEST_EFFORT
-        # reliable publisher + best_effort subscriber(탐지 노드 기본값)는 QoS 호환이므로 구독 쪽 설정은 그대로 둘 수 있다
+        # reliable publisher 는 best_effort 구독자와도 매칭되지만 재전송은 reliable 구독자에게만 된다: launch 가 input:=packets 일 때 탐지 노드를 reliable 로 맞춘다
         self.pub = self.create_publisher(PointCloud2, self.get_parameter("output_topic").value, QoSProfile(depth=5, reliability=out_rel))
         self._dropped = 0
         self.get_logger().info(f"packets {self.get_parameter('packets_topic').value} -> {self.get_parameter('output_topic').value} "
@@ -80,12 +90,15 @@ class OusterPacketNode(Node):
 
     def _init_decoder(self, json_str, source):
         """!
-        @brief metadata JSON 으로 디코더를 한 번만 생성.
+        @brief metadata JSON 으로 디코더를 생성한다. 토픽 metadata 는 파일 metadata 를 교체한다 (내용이 같으면 유지).
         @param json_str 센서 metadata JSON.
         @param source 로그용 출처 문자열 ("topic" 또는 파일 경로).
         """
         if self.decoder is not None:
-            return
+            if source != "topic" or json.loads(json_str) == self._meta_json:
+                return
+            self.get_logger().info("sensor metadata from the topic differs from the file -- switching to the topic metadata")
+        self._meta_json = json.loads(json_str)
         self.decoder = OusterPacketDecoder(json_str, point_frame=self.point_frame, stamp_mode=self.stamp_mode)
         self.get_logger().info(f"metadata from {source}: {self.decoder.describe()}")
 
@@ -107,7 +120,7 @@ class OusterPacketNode(Node):
         if self.decoder is None:
             self._dropped += 1
             if self._dropped % 1280 == 1:
-                self.get_logger().warning("no sensor metadata yet (topic %s or metadata_path) -- dropping packets" % self.get_parameter("metadata_topic").value)
+                self.get_logger().warning("no sensor metadata (topic %s, metadata_path) -- dropping packets" % self.get_parameter("metadata_topic").value)
             return
         now_ns = self.get_clock().now().nanoseconds
         if now_ns == 0:          # use_sim_time and no /clock received yet: a frame stamped 0 would break the pose lookup

@@ -4,9 +4,10 @@
 """!
 @brief rosbag2 bag 에서 Ouster 센서 metadata(JSON, /dev/lidar/metadata std_msgs/String)를 파일로 꺼낸다.
 
-드라이버는 metadata 를 bag 시작 시 한 번만(latched) 기록하므로 `ros2 bag play --start-offset ...` 으로 중간부터 재생하면
-ouster_packet_node 가 metadata 를 받지 못한다. 그때는 이 도구로 JSON 을 뽑아 `metadata_path` 파라미터(또는 launch 인자
-`ouster_metadata_path:=...`)로 넘긴다. 실제 센서 운용 시에는 드라이버의 latched 토픽으로 충분하다.
+ouster_packet_node 는 패키지의 config/ouster_metadata.json (OS-2-128 SN 992203000509, 2048x10) 으로 시작하므로 bag 을
+중간부터 재생해도 metadata 없이 동작한다. 센서(일련번호)나 모드(1024x20 등)가 바뀌면 이 도구로 새 bag 에서 JSON 을 뽑아
+그 파일을 교체하거나 `metadata_path` 파라미터(launch 인자 `ouster_metadata_path:=...`)로 넘긴다. 실제 센서 운용 시에는
+드라이버의 latched 토픽이 파일보다 우선한다.
 
     ros2 run lidar_perception_detection extract_ouster_metadata <bag_dir> [-o lidar_metadata.json] [--topic /dev/lidar/metadata]
 """

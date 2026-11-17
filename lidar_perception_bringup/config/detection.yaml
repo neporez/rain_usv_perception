@@ -1,7 +1,7 @@
 lidar_detection_node:
   ros__parameters:
     pointcloud_topic: "/dev/lidar/points"
-    pointcloud_qos_reliability: "best_effort"
+    pointcloud_qos_reliability: "best_effort"   # Ouster 드라이버 기본(sensor QoS)과 동일. launch 인자 pointcloud_qos 가 이 값을 덮어씀 (auto: packets 입력이면 reliable)
     model_config_path: "cfgs/kriso_models/kriso_voxelnext_deploy.yaml"
     ckpt_path: "cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth"
     score_threshold: 0.3

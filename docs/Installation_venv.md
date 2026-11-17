@@ -238,9 +238,8 @@ ros2 topic echo /detection/objects --once
 
 ```bash
 source <repo>/env.sh
-ros2 launch lidar_perception_bringup perception.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<bag>/lidar_metadata.json &
+ros2 launch lidar_perception_bringup perception.launch.py input:=packets use_sim_time:=true &
 ros2 bag play <bag> --clock &
 python3 <repo>/tools/replay_check.py --seconds 60 --expect-tracking     # RESULT: OK 이면 정상
 ```
-`tools/replay_check.py` 는 점군 / 탐지 / 추적 토픽의 수신 수와 주기를 요약합니다. PointCloud2 bag 이면 `input:=packets` 와
-`ouster_metadata_path` 를 빼면 됩니다.
+`tools/replay_check.py` 는 점군 / 탐지 / 추적 토픽의 수신 수와 주기를 요약합니다. PointCloud2 bag 이면 `input:=packets` 를 빼면 됩니다.

@@ -68,9 +68,8 @@ ros2 launch lidar_perception_bringup perception.launch.py input:=packets
 # bag 재생 (패킷 bag, GNSS 포함): 노드 시계를 bag 시각에 맞춘다
 ros2 bag play <bag> --clock
 ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets use_sim_time:=true
-#   --start-offset 로 중간부터 재생하면 latched metadata 를 못 받으므로 JSON 을 뽑아 넘긴다:
-#   ros2 run lidar_perception_detection extract_ouster_metadata <bag> -o lidar_metadata.json
-#   ros2 launch ... input:=packets use_sim_time:=true ouster_metadata_path:=$PWD/lidar_metadata.json
+#   센서 metadata 는 lidar_perception_detection/config/ouster_metadata.json 이 기본값이라 --start-offset 으로 중간부터 재생해도 된다
+#   (드라이버의 latched /dev/lidar/metadata 가 오면 그것이 우선; 센서/모드가 바뀌면 extract_ouster_metadata 로 파일 교체)
 
 # Detection + RViz 시각화 (추적 없음, GNSS 불필요)
 ros2 launch lidar_perception_bringup detection_viz.launch.py

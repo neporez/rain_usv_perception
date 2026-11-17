@@ -36,7 +36,11 @@ class Checker(Node):
         """
         super().__init__("replay_check")
         be = QoSProfile(depth=5, reliability=QoSReliabilityPolicy.BEST_EFFORT)
+        # the point cloud publisher may be reliable (ouster_packet_node) or best effort (Ouster driver): subscribe both ways,
+        # a cloud is counted once by its stamp (a best-effort reader of a reliable publisher may lose fragments on Fast DDS 3)
         self.create_subscription(PointCloud2, a.points_topic, self.on_pc, be)
+        self.create_subscription(PointCloud2, a.points_topic, self.on_pc, QoSProfile(depth=5, reliability=QoSReliabilityPolicy.RELIABLE))
+        self._pc_stamps = set()
         self.create_subscription(Object3DArray, a.detection_topic, self.on_det, 10)
         self.create_subscription(TrackedObject3DArray, a.tracking_topic, self.on_trk, 10)
         self.create_subscription(Clock, "/clock", self.on_clock, be)
@@ -50,6 +54,9 @@ class Checker(Node):
 
     def on_pc(self, m):
         st = m.header.stamp.sec + m.header.stamp.nanosec * 1e-9
+        if st in self._pc_stamps:
+            return
+        self._pc_stamps.add(st)
         self.pc.append((st, m.width * m.height, m.header.frame_id))
         if self.clock:
             self.lag.append(self.clock - st)

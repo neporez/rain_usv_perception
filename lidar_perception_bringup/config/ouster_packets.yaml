@@ -3,10 +3,10 @@ ouster_packet_node:
   ros__parameters:
     packets_topic: "/dev/lidar/lidar_packets"
     metadata_topic: "/dev/lidar/metadata"    # 드라이버가 latched 로 발행하는 센서 metadata JSON
-    metadata_path: ""                        # 토픽이 없으면 JSON 파일 경로 (예: lidar_metadata.json)
+    metadata_path: ""                        # "" = lidar_perception_detection/config/ouster_metadata.json (OS-2-128, 2048x10) 으로 시작하고 /dev/lidar/metadata 가 오면 교체. 다른 JSON 경로 또는 "none"(토픽만)
     output_topic: "/dev/lidar/points"
     frame_id: "os_lidar"
     point_frame: "lidar"                     # 드라이버의 point_cloud_frame(os_lidar)와 동일
     stamp_mode: "driver"                     # 드라이버와 동일한 시각 규약(직전 프레임 첫 패킷 시각); "scan_start" = 이 프레임 첫 패킷 시각
     packet_qos_depth: 4096
-    output_qos_reliability: "best_effort"    # 드라이버와 동일. ROS2 Lyrical(FastDDS 3)에서는 env.sh 의 FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA 가 없으면 700 KB 점군의 90 % 가 같은 PC 안에서도 유실됨
+    output_qos_reliability: "reliable"       # Fast DDS 3 (Lyrical) 는 700 KB best-effort 점군을 같은 PC 안에서도 90 % 유실 -> reliable. 탐지 노드는 launch 가 input:=packets 일 때 자동으로 reliable 구독
