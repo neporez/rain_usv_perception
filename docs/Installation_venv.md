@@ -244,15 +244,3 @@ python3 <repo>/tools/replay_check.py --seconds 60 --expect-tracking     # RESULT
 ```
 `tools/replay_check.py` 는 점군 / 탐지 / 추적 토픽의 수신 수와 주기를 요약합니다. PointCloud2 bag 이면 `input:=packets` 와
 `ouster_metadata_path` 를 빼면 됩니다.
-
-## 문제 해결
-
-| 증상 | 원인 / 조치 |
-|---|---|
-| `ModuleNotFoundError: torch` (노드 실행 시) | 노드가 시스템 python으로 빌드됨. venv 활성화 후 `pip install colcon-common-extensions`, `rm -rf build install`, 다시 `colcon build` |
-| `No module named 'rclpy'` (venv 안) | venv를 `--system-site-packages` 없이 만들었음. venv를 지우고 다시 생성 |
-| spconv import 시 nvcc 오류 `rsqrt` | 3절 `math_functions.h` 패치 누락 |
-| `no kernel image is available` | `TORCH_CUDA_ARCH_LIST` / `CUMM_CUDA_ARCH_LIST`가 GPU와 다름. 5절 값 수정 후 6절 캐시 삭제·재빌드 |
-| `Not updated weight ...` 로그 후 쓰레기 박스 | 설정과 체크포인트 불일치(드롭아웃 등). `kriso_voxelnext_deploy.yaml`과 체크포인트 조합 확인 |
-| 점군 수신 안 됨 | QoS. `detection.yaml`의 `pointcloud_qos_reliability`를 발행자에 맞춤 (Ouster 드라이버 기본 best_effort) |
-| 점군이 1 Hz 안팎으로만 들어옴 (발행은 10 Hz) | Fast DDS 3(Lyrical) 기본 전송에서 큰 best_effort 메시지가 같은 PC 안에서도 유실됨. `env.sh`의 `FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA` 가 모든 노드(라이다 드라이버 포함)에 적용되어야 함. 측정: 273 프레임 중 24 수신 → LARGE_DATA 에서 전부 수신 |
