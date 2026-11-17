@@ -86,6 +86,15 @@ ros2 run lidar_perception_detection extract_ouster_metadata <bag 폴더> -o lida
 ```
 (한 번만 쓰려면 `ouster_metadata_path:=<json 절대경로>` 로 넘겨도 된다.)
 
+**bag 을 중간부터 재생.** 1 GB 단위로 나뉜 bag(`_0`, `_1`, ...)은 폴더를 주면 조각을 이어서 재생한다. 몇 초 지점인지 모를 때는
+조각 번호나 시각으로 시작점을 정한다 (`--` 뒤의 인자는 `ros2 bag play` 에 그대로 전달):
+```bash
+ros2 run lidar_perception_detection play_bag <bag 폴더> --list            # 조각별 offset / 시각 표
+ros2 run lidar_perception_detection play_bag <bag 폴더> --file 2          # 조각 _2 부터 끝까지
+ros2 run lidar_perception_detection play_bag <bag 폴더> --time 12:52:30   # 그 시각부터 (PC 로컬 시간)
+ros2 run lidar_perception_detection play_bag <bag 폴더> --file 2 -- --loop
+```
+
 ## 3. 토픽·파라미터 바꾸기
 
 `lidar_perception_bringup/config/` 의 yaml 을 고치면 된다 (symlink 설치라 재빌드 없이 다음 launch 부터 적용).
