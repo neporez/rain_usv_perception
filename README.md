@@ -54,6 +54,8 @@ PointCloud2 (LiDAR, 10Hz)  ◄── (input:=packets) ouster_packet_node: /dev/l
 
 ## Usage
 
+상황별(실센서 / bag, PointCloud2 / 원시 패킷) 실행 방법과 확인·문제 해결은 **[docs/Usage.md](./docs/Usage.md)** 에 정리되어 있다.
+
 ```bash
 source <repo>/env.sh      # venv 설치 기준 (docs/installation.sh 가 생성; conda 설치는 lidar_perception_ros_lyrical)
 

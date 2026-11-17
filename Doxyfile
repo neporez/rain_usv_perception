@@ -41,6 +41,7 @@ WARN_NO_PARAMDOC       = YES
 # 서드파티 벤더 패키지(ros2_message_packages/)는 문서화 범위에서 제외.
 INPUT                  = README.md \
                          docs/Installation.md \
+                         docs/Usage.md \
                          docs/Installation_venv.md \
                          docs/Installation_Local.md \
                          docs/Installation_Docker.md \
