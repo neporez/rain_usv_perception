@@ -50,6 +50,7 @@ class OusterPacketNode(Node):
         self.declare_parameter("point_frame", "lidar")           # 'lidar' = os_lidar (드라이버와 동일) | 'sensor' = os_sensor
         self.declare_parameter("stamp_mode", "driver")             # 'driver' = ouster_ros 와 동일(직전 프레임 첫 패킷 시각) | 'scan_start'
         self.declare_parameter("packet_qos_depth", 4096)
+        self.declare_parameter("output_qos_reliability", "reliable")   # 700 KB 점군을 best_effort 로 내면 FastDDS 3 (Lyrical) 에서 같은 PC 안에서도 90 % 가 버려짐
         self.decoder = None
         self.frame_id = self.get_parameter("frame_id").value
         self.point_frame = self.get_parameter("point_frame").value
@@ -70,7 +71,9 @@ class OusterPacketNode(Node):
         pkt_qos = QoSProfile(depth=int(self.get_parameter("packet_qos_depth").value), reliability=QoSReliabilityPolicy.BEST_EFFORT,
                              history=QoSHistoryPolicy.KEEP_LAST)
         self.pkt_sub = self.create_subscription(PacketMsg, self.get_parameter("packets_topic").value, self.on_packet, pkt_qos)
-        self.pub = self.create_publisher(PointCloud2, self.get_parameter("output_topic").value, QoSProfile(depth=2, reliability=QoSReliabilityPolicy.BEST_EFFORT))
+        out_rel = QoSReliabilityPolicy.RELIABLE if self.get_parameter("output_qos_reliability").value == "reliable" else QoSReliabilityPolicy.BEST_EFFORT
+        # reliable publisher + best_effort subscriber(탐지 노드 기본값)는 QoS 호환이므로 구독 쪽 설정은 그대로 둘 수 있다
+        self.pub = self.create_publisher(PointCloud2, self.get_parameter("output_topic").value, QoSProfile(depth=5, reliability=out_rel))
         self._dropped = 0
         self.get_logger().info(f"packets {self.get_parameter('packets_topic').value} -> {self.get_parameter('output_topic').value} "
                                f"(frame_id {self.frame_id}); waiting for metadata" if self.decoder is None else "decoder ready: " + self.decoder.describe())
