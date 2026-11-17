@@ -16,14 +16,14 @@ source <저장소 경로>/env.sh        # 예: source ~/ros2_ws/src/lidar_detect
 **터미널 1 — 노드 (탐지 + 추적 + RViz)**
 ```bash
 source <저장소>/env.sh
-ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<bag 폴더>/lidar_metadata.json
+ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets
 ```
 `[lidar_detection_node-2] ... Model loaded.` 가 찍히고 RViz 가 뜨면 다음으로 (첫 실행 1~2 분, 이후 10 s).
 
 **터미널 2 — bag 재생**
 ```bash
 source <저장소>/env.sh
-ros2 bag play <bag 폴더> --clock --loop
+ros2 bag play <bag 폴더> --loop
 ```
 몇 초 뒤 터미널 1 에 `frame 1: ... points` 가 찍히고 RViz 에 점군·상자가 나온다.
 
@@ -36,8 +36,8 @@ python3 <저장소>/tools/replay_check.py --seconds 60 --expect-tracking    # RE
 ```
 종료: 터미널 2 Ctrl-C → 터미널 1 Ctrl-C (`process has died ... exit code -2` 는 Ctrl-C 로 끝났다는 정상 메시지).
 
-실센서에 붙일 때는 터미널 2 가 없고(드라이버가 그 역할), 터미널 1 에서 `use_sim_time`·`ouster_metadata_path` 를 빼고
-드라이버가 패킷만 주면 `input:=packets` 만 남긴다. 어떤 인자가 필요한지는 1절로 판단한다.
+실센서에 붙일 때는 터미널 2 가 없고(드라이버가 그 역할), 터미널 1 은 드라이버가 PointCloud2 를 주면 인자 없이,
+패킷만 주면 `input:=packets` 로 띄운다. 어떤 인자가 필요한지는 1절로 판단한다.
 
 ## 1. 입력이 무엇인지 먼저 확인한다
 
@@ -58,8 +58,8 @@ ros2 topic list | grep -E "lidar|gnss|fog"
 
 토픽 이름이 위와 다르면 `lidar_perception_bringup/config/*.yaml` 의 토픽 파라미터를 고친다 (3절).
 
-**bag 재생인지 실센서인지**도 다르다. bag 이면 노드 시계를 bag 시각에 맞춘다: `ros2 bag play <bag> --clock` 으로 재생하고
-launch 에 `use_sim_time:=true` 를 붙인다. 실센서면 둘 다 쓰지 않는다.
+**bag 재생**은 `ros2 bag play <bag>` 그대로 재생하면 된다. 추적 노드가 자선 pose 의 시각 기준을 자동으로 맞추므로(`pose_time_source: auto`)
+`--clock` / `use_sim_time:=true` 는 없어도 동작한다. 붙이면 모든 노드가 bag 시각으로 움직여 시각이 더 정확해지므로, 선택 사항이다.
 
 ## 2. 실행 명령
 
@@ -67,9 +67,11 @@ launch 에 `use_sim_time:=true` 를 붙인다. 실센서면 둘 다 쓰지 않�
 |---|---|---|
 | 실센서, 드라이버가 PointCloud2 발행 | `ros2 launch lidar_perception_bringup perception_viz.launch.py` | - |
 | 실센서, 드라이버가 패킷만 발행 | `ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets` | - |
-| bag (PointCloud2 기록) | `ros2 launch lidar_perception_bringup perception_viz.launch.py use_sim_time:=true` | `ros2 bag play <bag> --clock` |
-| bag (패킷 기록, 처음부터 녹화돼 metadata 포함) | `... perception_viz.launch.py input:=packets use_sim_time:=true` | `ros2 bag play <bag> --clock` |
-| bag (패킷 기록, metadata 없음) | `... perception_viz.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<json>` | `ros2 bag play <bag> --clock` |
+| bag (PointCloud2 기록) | `ros2 launch lidar_perception_bringup perception_viz.launch.py` | `ros2 bag play <bag>` |
+| bag (패킷 기록, metadata 포함) | `... perception_viz.launch.py input:=packets` | `ros2 bag play <bag>` |
+| bag (패킷 기록, metadata 없음 = 중간을 잘라낸 bag) | `... perception_viz.launch.py input:=packets ouster_metadata_path:=<json>` | `ros2 bag play <bag>` |
+
+(선택) bag 시각으로 정확히 맞추려면 launch 에 `use_sim_time:=true`, 재생에 `--clock` 을 함께 붙인다.
 
 - `perception_viz` = 탐지 + 추적 + RViz. 추적 없이 탐지만 보려면 `detection_viz.launch.py`(초록 상자 + 라벨), 화면 없이 돌리려면
   `perception.launch.py` / `detection_only.launch.py` 를 같은 인자로 쓴다.
@@ -112,7 +114,7 @@ RViz 에서는 Fixed Frame 이 `os_lidar` 인지, PointCloud2 표시의 Topic �
 | 증상 | 원인 / 조치 |
 |---|---|
 | 아무것도 안 나오고 터미널에 `no sensor metadata yet ... dropping packets` 반복 | 패킷 입력인데 metadata 가 없다. 처음부터 녹화된 bag/실센서가 아니면 `ouster_metadata_path:=` 로 JSON 을 넘긴다 |
-| `No GNSS pose within 0.5s of the LiDAR stamp ... skipping` 반복 | bag 재생인데 `use_sim_time:=true` 또는 `--clock` 이 빠졌거나, pose 토픽이 없다/1 Hz 뿐이다. 탐지는 되고 추적만 멈춘다 |
+| `No GNSS pose within 0.5s of the LiDAR stamp ... skipping` 반복 | pose 토픽이 없거나(`ros2 topic hz /dev/gnss/hemisphere/pose`) 1 Hz 뿐이거나, `--clock` 만 썼고 `use_sim_time` 은 빠진 경우(둘 다 쓰거나 둘 다 빼기). 탐지는 되고 추적만 멈춘다 |
 | 점군이 1 Hz 안팎, 탐지도 드물게 | `env.sh` 를 읽지 않은 터미널에서 띄움 (Fast DDS 3 의 큰 메시지 유실). 모든 노드를 `env.sh` 읽은 터미널에서 다시 띄운다 |
 | `Model loaded.` 전에 수 분 걸림 | 설치 후 첫 실행의 spconv JIT 컴파일. 한 번만 기다리면 된다 |
 | RViz 에 점군이 없고 오른쪽 상태가 빨간색 | PointCloud2 display 의 Topic/Reliability 또는 Fixed Frame (`os_lidar`) 확인 |
