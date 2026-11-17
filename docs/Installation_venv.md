@@ -65,8 +65,8 @@ sudo apt install -y ros-lyrical-desktop ros-dev-tools
 ## 2. venv 생성
 
 ```bash
-python3 -m venv --system-site-packages ~/venv/perception
-source ~/venv/perception/bin/activate
+python3 -m venv --system-site-packages ~/venv/lidar_detection
+source ~/venv/lidar_detection/bin/activate
 pip install -U pip setuptools wheel
 pip install colcon-common-extensions
 ```
@@ -78,7 +78,7 @@ pip install colcon-common-extensions
 ```bash
 perception_env() {
     source /opt/ros/lyrical/setup.bash
-    source ~/venv/perception/bin/activate
+    source ~/venv/lidar_detection/bin/activate
     [ -f ~/ros2_ws/install/setup.bash ] && source ~/ros2_ws/install/setup.bash
     export CUDA_HOME=/usr/local/cuda-13.1
     export PATH=$CUDA_HOME/bin:$PATH

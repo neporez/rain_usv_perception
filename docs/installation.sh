@@ -13,7 +13,7 @@
 # directory that contains that src/.
 #
 # Environment overrides (all optional):
-#   VENV=$HOME/venv/perception     venv location
+#   VENV=$HOME/venv/lidar_detection     venv location
 #   ROS_DISTRO=lyrical             ROS 2 distribution under /opt/ros
 #   CUDA_VER=13-1                  CUDA apt package suffix; FULL_CUDA=1 installs cuda-toolkit-${CUDA_VER} instead of the minimal set
 #   ARCH=8.9                       GPU compute capability for the CUDA builds (default: read from nvidia-smi)
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VENV="${VENV:-$HOME/venv/perception}"
+VENV="${VENV:-$HOME/venv/lidar_detection}"
 ROS_DISTRO="${ROS_DISTRO:-lyrical}"
 CUDA_VER="${CUDA_VER:-13-1}"
 CUDA_HOME_DIR="/usr/local/cuda-${CUDA_VER/-/.}"
