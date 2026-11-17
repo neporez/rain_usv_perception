@@ -17,13 +17,6 @@ wget https://github.com/neporez/rain_usv_perception/releases/download/v1.0.0/vox
 ros2 launch lidar_perception_bringup perception_viz.launch.py          # 첫 실행 시 spconv JIT 빌드 (10~20 분)
 ```
 
-## 가이드라인 PDF
+## 가이드라인 문서
 
-\htmlonly
-<iframe src="docker_build_guide.pdf" width="100%" height="800px" style="border:1px solid #ccc;">
-  이 브라우저는 PDF 미리보기를 지원하지 않는다.
-  <a href="docker_build_guide.pdf">PDF 다운로드</a>
-</iframe>
-\endhtmlonly
-
-미리보기가 안 보이면 [PDF 다운로드](docker_build_guide.pdf)를 클릭한다.
+Docker 빌드 가이드라인(PDF, 스크린샷 포함)은 별도 납품 문서(Doxygen 문서 패키지)에 포함되어 있으며 이 저장소에는 넣지 않는다.
