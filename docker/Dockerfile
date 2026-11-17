@@ -57,13 +57,17 @@ RUN pip3 install \
 
 # -----------------------------------------------------------
 # 6. GPU 아키텍처 타겟 명시 (필수)
-# docker build 시점엔 GPU 미접근 -> 자동감지 불가, 반드시 명시해야
-# 어떤 머신에서 빌드하든 동일한 결과(모든 대상 GPU 지원) 보장됨
+# docker build 시점엔 GPU 미접근 -> 자동감지 불가, 반드시 명시해야 한다.
+# cubin 은 같은 major 안에서만 상위 호환 (8.6 cubin 은 8.9 에서 동작, 8.9 cubin 은 8.6 에서 동작하지 않음) ->
+# 대상 GPU 의 compute capability 를 모두 넣는다 (nvidia-smi --query-gpu=compute_cap --format=csv).
 #   sm_75 = RTX 2080 / Quadro RTX 8000 (Turing)
-#   sm_89 = RTX 4090 (Ada Lovelace)
+#   sm_86 = RTX 3080 / 3050 (Ampere, 배포 랩탑)
+#   sm_89 = RTX 4090 / 4080 / 4070 Laptop (Ada)
+# 다른 GPU 는 빌드 시 --build-arg CUDA_ARCHS="7.5;8.6;8.9;9.0" 처럼 덧붙인다.
 # -----------------------------------------------------------
-ENV TORCH_CUDA_ARCH_LIST="7.5;8.9"
-ENV CUMM_CUDA_ARCH_LIST="7.5;8.9"
+ARG CUDA_ARCHS="7.5;8.6;8.9"
+ENV TORCH_CUDA_ARCH_LIST=${CUDA_ARCHS}
+ENV CUMM_CUDA_ARCH_LIST=${CUDA_ARCHS}
 
 # -----------------------------------------------------------
 # 7. cumm 빌드

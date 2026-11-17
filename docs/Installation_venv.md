@@ -122,7 +122,7 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"   
 
 ## 5. GPU 아키텍처 지정
 
-빌드 머신에 GPU가 있으면 자동 감지되지만, 명시해 두면 빌드가 재현됩니다. 0절에서 확인한 `compute_cap`을 넣습니다
+`installation.sh` 는 `nvidia-smi` 의 compute_cap 을 읽어 그 GPU 전용으로 빌드하므로(RTX 3080 = 8.6, 4070/4080 Laptop = 8.9) 수동 설치 때만 아래처럼 지정합니다. 빌드한 PC 와 다른 세대의 GPU 로 venv 를 그대로 옮기면 동작하지 않습니다(그 PC 에서 다시 설치). 0절에서 확인한 `compute_cap`을 넣습니다
 (예: RTX 4090 = 8.9, RTX 3050 = 8.6, RTX 2080 / Quadro RTX 8000 = 7.5). 여러 개는 `;`로 구분.
 
 ```bash
