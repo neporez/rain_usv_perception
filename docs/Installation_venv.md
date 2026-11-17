@@ -32,7 +32,7 @@ source rain_usv_perception/env.sh                 # 이후 매 터미널에서: 
 - 워크스페이스에 다른 팀의 패키지가 함께 있어도 됩니다. `colcon build --packages-up-to lidar_perception_bringup lidar_perception_viz`
   로 이 저장소의 패키지만 빌드하고, `ros2_message_packages/` 의 메시지 패키지(gnss_msgs 등)가 워크스페이스에 이미 있으면
   우리 사본에 `COLCON_IGNORE` 를 넣어 중복 오류를 피합니다.
-- 옵션은 환경 변수로 줍니다: `VENV`, `CKPT=real|sim2000|none`, `FULL_CUDA=1`, `SKIP_APT=1`, `SKIP_WS_BUILD=1`, `ARCH`(compute capability).
+- 옵션은 환경 변수로 줍니다: `VENV`, `CKPT=all|real|sim2000|none`(기본 all = 두 모델 모두 다운로드), `FULL_CUDA=1`, `SKIP_APT=1`, `SKIP_WS_BUILD=1`, `ARCH`(compute capability).
 
 ## 0. 사전 조건
 

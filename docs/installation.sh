@@ -18,7 +18,7 @@
 #   CUDA_VER=13-1                  CUDA apt package suffix; FULL_CUDA=1 installs cuda-toolkit-${CUDA_VER} instead of the minimal set
 #   ARCH=8.9                       GPU compute capability for the CUDA builds (default: read from nvidia-smi)
 #   SRC_DIR=$HOME/.local/src       where cumm / spconv are cloned and built (outside the workspace)
-#   CKPT=real | sim2000 | none     which release checkpoint to download (default real)
+#   CKPT=all | real | sim2000 | none   which release checkpoints to download (default all = both models; detection.yaml uses real)
 #   SKIP_APT=1                     skip the sudo/apt stage (CUDA already installed)
 #   SKIP_WS_BUILD=1                skip colcon build
 # =====================================================================================================================
@@ -30,7 +30,7 @@ ROS_DISTRO="${ROS_DISTRO:-lyrical}"
 CUDA_VER="${CUDA_VER:-13-1}"
 CUDA_HOME_DIR="/usr/local/cuda-${CUDA_VER/-/.}"
 SRC_DIR="${SRC_DIR:-$HOME/.local/src}"
-CKPT="${CKPT:-real}"
+CKPT="${CKPT:-all}"
 TORCH_SPEC="${TORCH_SPEC:-torch==2.12.0 torchvision==0.27.0}"
 TORCH_INDEX="${TORCH_INDEX:-https://download.pytorch.org/whl/cu130}"
 PIP_DEPS="numpy==2.4.6 llvmlite==0.48.0 numba==0.66.0 tensorboardX==2.6.5 easydict==1.13 scikit-image tqdm==4.67.3 SharedArray==3.2.4 opencv-python pyquaternion pyyaml ouster-sdk"
@@ -159,20 +159,23 @@ fi
 python -c "import torch, pcdet; from pcdet.ops.iou3d_nms import iou3d_nms_cuda; print('pcdet ok', pcdet.__file__)"
 ok "pcdet ready"
 
-# ------------------------------------------------------------------------------------------------- 6. checkpoint
-log "6/8 checkpoint ($CKPT)"
+# ------------------------------------------------------------------------------------------------- 6. checkpoints
+log "6/8 checkpoints ($CKPT) from the GitHub release"
 case "$CKPT" in
-  real)    F=voxelnext_kriso_real_epoch_80.pth ;;
-  sim2000) F=voxelnext_kriso_real_sim2000_epoch_80.pth ;;
-  none)    F="" ;;
-  *) die "CKPT must be real | sim2000 | none" ;;
+  all)     FILES="voxelnext_kriso_real_epoch_80.pth voxelnext_kriso_real_sim2000_epoch_80.pth" ;;
+  real)    FILES="voxelnext_kriso_real_epoch_80.pth" ;;
+  sim2000) FILES="voxelnext_kriso_real_sim2000_epoch_80.pth" ;;
+  none)    FILES="" ;;
+  *) die "CKPT must be all | real | sim2000 | none" ;;
 esac
-if [ -n "$F" ]; then
+if [ -n "$FILES" ]; then
   mkdir -p "$CKPT_DIR"
-  [ -f "$CKPT_DIR/$F" ] || curl -fL --retry 3 -o "$CKPT_DIR/$F" "$RELEASE_URL/$F"
+  for F in $FILES; do
+    [ -f "$CKPT_DIR/$F" ] || curl -fL --retry 3 -o "$CKPT_DIR/$F" "$RELEASE_URL/$F"
+  done
   curl -fsL -o "$CKPT_DIR/SHA256SUMS" "$RELEASE_URL/SHA256SUMS"
   (cd "$CKPT_DIR" && sha256sum -c SHA256SUMS --ignore-missing)
-  [ "$F" = "voxelnext_kriso_real_epoch_80.pth" ] || echo "[note] detection.yaml defaults to voxelnext_kriso_real_epoch_80.pth: set ckpt_path to $F"
+  echo "[note] detection.yaml uses voxelnext_kriso_real_epoch_80.pth (real data only); set ckpt_path to voxelnext_kriso_real_sim2000_epoch_80.pth for the real+sim model"
 fi
 
 # ------------------------------------------------------------------------------------------------- 7. workspace build
