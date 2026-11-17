@@ -50,7 +50,7 @@ class OusterPacketNode(Node):
         self.declare_parameter("point_frame", "lidar")           # 'lidar' = os_lidar (드라이버와 동일) | 'sensor' = os_sensor
         self.declare_parameter("stamp_mode", "driver")             # 'driver' = ouster_ros 와 동일(직전 프레임 첫 패킷 시각) | 'scan_start'
         self.declare_parameter("packet_qos_depth", 4096)
-        self.declare_parameter("output_qos_reliability", "reliable")   # 700 KB 점군을 best_effort 로 내면 FastDDS 3 (Lyrical) 에서 같은 PC 안에서도 90 % 가 버려짐
+        self.declare_parameter("output_qos_reliability", "best_effort")   # 드라이버와 동일(sensor QoS). 큰 점군 유실은 env.sh 의 FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA 로 막는다
         self.decoder = None
         self.frame_id = self.get_parameter("frame_id").value
         self.point_frame = self.get_parameter("point_frame").value

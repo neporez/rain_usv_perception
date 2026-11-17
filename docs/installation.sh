@@ -201,6 +201,10 @@ export CUDA_HOME=$CUDA_HOME_DIR
 export PATH=\$CUDA_HOME/bin:\$PATH
 export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\${LD_LIBRARY_PATH:-}
 export TORCH_CUDA_ARCH_LIST="$ARCH" CUMM_CUDA_ARCH_LIST="$ARCH"
+# Fast DDS 3 (ROS 2 Lyrical): with the default UDP+SHM transports, best-effort PointCloud2 messages of ~0.7-13 MB are
+# dropped (~90 %) even between nodes on the same PC. LARGE_DATA (TCP + SHM for data) delivers them at 10 Hz.
+# Measured 2026-11-17: 24 of 273 clouds received without it, 268 of 262 with it. Set it for every node of the pipeline.
+export FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA
 EOT
 cp "$ENVF" "$VENV/perception_env.sh"
 log "8/8 done. Environment file: $ENVF"
