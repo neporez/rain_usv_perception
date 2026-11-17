@@ -147,8 +147,15 @@ class ModelInferencer:
             raise ValueError(f"model expects {self.num_point_features} point features, got {points.shape[1]}")
         points = np.ascontiguousarray(points[:, :self.num_point_features], dtype=np.float32)
 
+        # 0. 빈 프레임 보호: 점이 없거나(센서 끊김, 전부 범위 밖) 복셀이 0개면 spconv 커널 실행에서 예외가 나므로 빈 결과를 돌려준다.
+        #    (복셀이 1개 이상이면 500개 미만이어도 정상 동작한다 -- centernet_utils._topk_1d 가 K 로 패딩함)
+        if points.shape[0] == 0:
+            return []
+
         # 1. 전처리 (voxelize 포함, pcdet 기능 재사용)
         data_dict = self._dataset.prepare_data({"points": points, "frame_id": 0})
+        if data_dict.get("voxel_coords") is None or len(data_dict["voxel_coords"]) == 0:
+            return []
         data_dict = self._dataset.collate_batch([data_dict])
         load_data_to_gpu(data_dict)
 
