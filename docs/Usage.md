@@ -11,6 +11,34 @@ source <저장소 경로>/env.sh        # 예: source ~/ros2_ws/src/lidar_detect
 
 ---
 
+## 0. 터미널별 순서 (테스트 bag 예시)
+
+**터미널 1 — 노드 (탐지 + 추적 + RViz)**
+```bash
+source <저장소>/env.sh
+ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets use_sim_time:=true ouster_metadata_path:=<bag 폴더>/lidar_metadata.json
+```
+`[lidar_detection_node-2] ... Model loaded.` 가 찍히고 RViz 가 뜨면 다음으로 (첫 실행 1~2 분, 이후 10 s).
+
+**터미널 2 — bag 재생**
+```bash
+source <저장소>/env.sh
+ros2 bag play <bag 폴더> --clock --loop
+```
+몇 초 뒤 터미널 1 에 `frame 1: ... points` 가 찍히고 RViz 에 점군·상자가 나온다.
+
+**터미널 3 — 확인 (선택)**
+```bash
+source <저장소>/env.sh
+ros2 topic hz /dev/lidar/points          # 10 Hz 전후
+ros2 topic hz /detection/objects         # 10 Hz 전후
+python3 <저장소>/tools/replay_check.py --seconds 60 --expect-tracking    # RESULT: OK
+```
+종료: 터미널 2 Ctrl-C → 터미널 1 Ctrl-C (`process has died ... exit code -2` 는 Ctrl-C 로 끝났다는 정상 메시지).
+
+실센서에 붙일 때는 터미널 2 가 없고(드라이버가 그 역할), 터미널 1 에서 `use_sim_time`·`ouster_metadata_path` 를 빼고
+드라이버가 패킷만 주면 `input:=packets` 만 남긴다. 어떤 인자가 필요한지는 1절로 판단한다.
+
 ## 1. 입력이 무엇인지 먼저 확인한다
 
 라이다 드라이버나 bag 재생이 돌고 있는 상태에서:
