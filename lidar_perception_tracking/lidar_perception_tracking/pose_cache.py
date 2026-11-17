@@ -14,8 +14,11 @@ GNSS / INS pose (gnss_msgs/msg/Pose) 를 시간순 버퍼에 저장해 두고, �
 10 Hz 이상에서는 라이다 시각(10 Hz)이 항상 두 pose 샘플 사이에 들어오므로 보간으로 충분하다.
 
 시각 기준 (time_source):
-    'header'    pose 메시지의 header.stamp = 수신 시각 (호스트 시계). 라이다 PointCloud2 의 header.stamp 도
-                드라이버가 같은 호스트 시계로 찍으므로 (스캔 시작 시각) 기본값으로 이것을 쓴다.
+    'auto'      (기본) pose 마다 header.stamp 와 수신 시각(노드 시계)을 둘 다 기억해 두고, 질의(라이다 프레임 시각)에
+                더 가까운 쪽을 기준으로 보간한다. 그래서 bag 을 --clock 없이 재생하거나 use_sim_time 을 빼도
+                (라이다 스탬프 = 현재 시각, pose header = 녹화 당시 시각) 추적이 동작한다.
+    'header'    pose 메시지의 header.stamp (실센서: 호스트 시계, 라이다 PointCloud2 와 같은 시계).
+    'receive'   pose 를 받은 노드 시계 시각.
     'gnss_time' NMEA 의 UNIX time (fix 시각). hemisphere 는 header 보다 ~0.13 s 앞선다. 호스트 시계가 GPS 와
                 동기되어 있을 때만 의미가 있다.
 
@@ -41,18 +44,18 @@ class PoseCache:
     get_pose_matrix() 를 호출해 로컬→글로벌(UTM, ENU) 변환 행렬을 얻는다.
     """
 
-    def __init__(self, max_age_sec: float = 0.5, buffer_sec: float = 5.0, time_source: str = "header",
+    def __init__(self, max_age_sec: float = 0.5, buffer_sec: float = 5.0, time_source: str = "auto",
                  heading_convention: str = "ned", time_offset_sec: float = 0.0):
         """!
         @brief 빈 버퍼로 초기화.
         @param max_age_sec 버퍼 밖 시각을 허용하는 최대 거리 [s]; 넘으면 get_pose() 가 None.
         @param buffer_sec 버퍼에 유지하는 시간 길이 [s].
-        @param time_source 'header'(수신 시각, 라이다와 같은 호스트 시계) | 'gnss_time'(NMEA fix 시각).
+        @param time_source 'auto'(질의 시각에 가까운 쪽 자동 선택) | 'header' | 'receive' | 'gnss_time'.
         @param heading_convention 'ned'(Pose.yaw = 진북 기준 시계방향 deg → ENU yaw 로 변환) | 'enu'(그대로).
         @param time_offset_sec 질의 시각에 더하는 보정값 [s].
         """
-        if time_source not in ("header", "gnss_time"):
-            raise ValueError(f"time_source must be 'header' or 'gnss_time', got {time_source!r}")
+        if time_source not in ("auto", "header", "receive", "gnss_time"):
+            raise ValueError(f"time_source must be 'auto', 'header', 'receive' or 'gnss_time', got {time_source!r}")
         if heading_convention not in ("ned", "enu"):
             raise ValueError(f"heading_convention must be 'ned' or 'enu', got {heading_convention!r}")
         self.max_age_sec = float(max_age_sec)        # 버퍼 밖 시각을 허용하는 최대 거리 (가장 가까운 샘플을 그대로 사용)
@@ -60,32 +63,38 @@ class PoseCache:
         self.time_source = time_source
         self.heading_convention = heading_convention
         self.time_offset_sec = float(time_offset_sec)   # 질의 시각에 더하는 보정값 (라이다 / pose 시계 차이가 있을 때)
-        ## pose 시각 [s], 단조 증가
+        ## pose 시각 [s] (header 또는 gnss_time 기준), 단조 증가
         self._t = deque()
+        ## pose 수신 시각 [s] (노드 시계), _t 와 같은 순서 ('auto' / 'receive' 에서 사용)
+        self._rx = deque()
         ## (x, y, z, yaw_rad, utmzone) — 시각과 같은 순서
         self._p = deque()
+        ## 마지막 get_pose() 가 쓴 시각 기준 ('header' | 'receive' | 'gnss_time'), 로그용
+        self.last_base = None
         ## 수신한 pose 수
         self.n_received = 0
 
     # ------------------------------------------------------------------ input
-    def update(self, msg):
+    def update(self, msg, receive_time_sec=None):
         """!
         @brief 새 pose 를 버퍼 끝에 추가 (역순/중복 스탬프는 버림), buffer_sec 보다 오래된 샘플은 제거.
         @param msg gnss_msgs/msg/Pose 메시지.
+        @param receive_time_sec 수신 시각 [s] (노드 시계). None 이면 header.stamp 로 대신한다.
         """
-        if self.time_source == "header":
-            t = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-        else:
-            t = float(msg.gnss_time)
+        hdr = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        t = float(msg.gnss_time) if self.time_source == "gnss_time" else hdr
+        rx = hdr if receive_time_sec is None else float(receive_time_sec)
         if self._t and t <= self._t[-1]:
             # 역순 / 중복 스탬프는 버린다 (보간 구간이 꼬이지 않도록)
             return
         yaw_deg = msg.yaw if self.heading_convention == "enu" else (90.0 - msg.yaw)
         self._t.append(t)
+        self._rx.append(rx)
         self._p.append((float(msg.utmx), float(msg.utmy), float(msg.altitude), math.radians(yaw_deg), msg.utmzone))
         self.n_received += 1
         while self._t and t - self._t[0] > self.buffer_sec:
             self._t.popleft()
+            self._rx.popleft()
             self._p.popleft()
 
     def has_fix(self) -> bool:
@@ -116,7 +125,14 @@ class PoseCache:
         if not self._t:
             return None
         q = query_time_sec + self.time_offset_sec
-        ts = self._t
+        # 시각 기준 선택: 'auto' 는 최신 샘플이 질의 시각에 더 가까운 쪽 (header/gnss_time vs 수신 시각)
+        if self.time_source == "receive":
+            ts, base = self._rx, "receive"
+        elif self.time_source == "auto" and abs(self._rx[-1] - q) < abs(self._t[-1] - q):
+            ts, base = self._rx, "receive"
+        else:
+            ts, base = self._t, self.time_source if self.time_source != "auto" else "header"
+        self.last_base = base
         i = bisect.bisect_left(ts, q)
         if 0 < i < len(ts):
             t0, t1 = ts[i - 1], ts[i]

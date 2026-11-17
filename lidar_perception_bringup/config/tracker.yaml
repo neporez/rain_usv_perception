@@ -9,7 +9,7 @@ lidar_tracking_node:
     # The LiDAR frame pose is INTERPOLATED between the two nearest pose samples (no velocity extrapolation),
     # so the source must be >= 10 Hz. The 1 Hz /digital_bridge/gnss/pose is not suitable.
     gnss_topic: "/dev/gnss/hemisphere/pose"
-    pose_time_source: "header"       # 'header' = host receive clock (same clock as the LiDAR PointCloud2 stamps) | 'gnss_time'
+    pose_time_source: "auto"         # auto = header 시각과 수신 시각 중 라이다 스탬프에 맞는 쪽 (bag 을 --clock 없이 재생해도 동작) | header | receive | gnss_time
     pose_max_age_sec: 0.5            # LiDAR stamp outside the pose buffer by more than this -> frame skipped with a warning
     pose_buffer_sec: 5.0
     pose_time_offset_sec: 0.0
