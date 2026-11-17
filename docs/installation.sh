@@ -99,7 +99,9 @@ export CUDA_HOME="$CUDA_HOME_DIR" PATH="$CUDA_HOME_DIR/bin:$PATH" LD_LIBRARY_PAT
 log "2/8 venv $VENV"
 [ -x "$VENV/bin/python" ] || python3 -m venv --system-site-packages "$VENV"
 # shellcheck disable=SC1091
+set +u   # setup files reference unset variables
 source "$VENV/bin/activate"
+set -u
 # setuptools < 80: colcon-core 0.21 (symlink-install uses "setup.py develop") and torch 2.12 (< 82) require it
 python -m pip install -q -U pip wheel "setuptools<80"
 # with --system-site-packages pip would consider an apt colcon "already installed" -> force it into the venv so that
@@ -181,7 +183,9 @@ else
     fi
   done
   # shellcheck disable=SC1091
+  set +u   # setup files reference unset variables
   source "/opt/ros/$ROS_DISTRO/setup.bash"
+  set -u
   (cd "$WS" && colcon build --symlink-install --packages-up-to lidar_perception_bringup lidar_perception_viz)
   ok "workspace built"
 fi
