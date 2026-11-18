@@ -6,9 +6,10 @@
 ```bash
 source <저장소 경로>/env.sh        # 예: source ~/ros2_ws/src/lidar_detection/rain_usv_perception/env.sh
 ```
-`env.sh`는 ROS2, venv, 워크스페이스, CUDA 환경을 설정한다. DDS 통신 설정(transport, domain)은 ROS2 기본값 그대로 두므로 같은
-`ROS_DOMAIN_ID`의 다른 모듈(라이다 드라이버, GNSS, 통합 소프트웨어)과 추가 설정 없이 토픽이 오간다. `FASTDDS_BUILTIN_TRANSPORTS`
-같은 transport 환경변수를 한쪽에만 주면 서로 발견조차 못 하므로 쓰지 않는다.
+`env.sh`는 ROS2, venv, 워크스페이스, CUDA 환경과 Fast DDS 프로파일(`FASTRTPS_DEFAULT_PROFILES_FILE`, 아래 "큰 점군 메시지" 참고)을
+설정한다. transport 종류와 `ROS_DOMAIN_ID`는 ROS2 기본값 그대로이므로 다른 모듈(라이다 드라이버, GNSS, 통합 소프트웨어)과 추가 설정
+없이 토픽이 오가고, `env.sh`를 읽지 않은 터미널에서도 토픽이 보인다. `FASTDDS_BUILTIN_TRANSPORTS` 같은 transport 변경은 한쪽에만
+주면 서로 발견조차 못 하므로 쓰지 않는다.
 
 ---
 
@@ -120,14 +121,17 @@ python3 <저장소>/tools/replay_check.py --seconds 60 --expect-tracking   # 60 
 RViz 에서는 Fixed Frame 이 `os_lidar` 인지, PointCloud2 표시의 Topic 이 `/dev/lidar/points` 이고 Reliability 가 발행자와 맞는지
 확인한다. launch 가 같이 띄우는 RViz 는 입력에 맞는 설정(packets = Reliable, PointCloud2 = Best Effort)을 자동으로 고른다.
 
-**점군 QoS.** ROS2 Lyrical 의 Fast DDS 3 는 0.7 MB 크기의 best-effort 점군을 같은 PC 안에서도 90 % 가량 버린다(측정: best-effort
-6/100, reliable 100/100). 그래서
-- `input:=packets` 이면 `ouster_packet_node` 가 점군을 **reliable** 로 발행하고 탐지 노드도 reliable 로 받는다 (launch 인자
-  `pointcloud_qos:=auto` 기본값). 추가 설정 없음.
-- Ouster 드라이버의 PointCloud2 를 직접 받을 때는 드라이버 기본 QoS 가 best-effort 라 유실이 생길 수 있다. 드라이버를
-  `use_system_default_qos:=true`(reliable) 로 띄우고 launch 에 `pointcloud_qos:=reliable` 을 주면 해결된다.
-- `ros2 topic hz` / `echo` 는 발행자가 reliable 이어도 best-effort 로 구독하므로 Lyrical 에서는 수치가 낮게 나올 수 있다.
-  `--qos-reliability reliable` 을 붙이거나 `tools/replay_check.py` 로 확인한다.
+**큰 점군 메시지 (Fast DDS 3 공유 메모리 한계).** ROS2 Lyrical 의 Fast DDS 3 는 공유 메모리 세그먼트가 기본 512 KB 라서 그보다 큰
+PointCloud2(유효 점만 담은 unorganized 점군도 2~5만 점이면 1~2 MB)는 UDP 조각 전송으로 넘어가고, best-effort 에서는 같은 PC 안에서도
+98 % 가 유실된다(측정, 2 MB 메시지: 기본 1/100). 해결은 세그먼트를 키운 프로파일 `lidar_perception_bringup/config/fastdds_large_messages.xml`
+(64 MB) 이고 `env.sh` 가 `FASTRTPS_DEFAULT_PROFILES_FILE` 로 읽어 들인다.
+- 프로파일은 **큰 메시지를 발행하는 쪽**에만 있으면 된다(측정: 발행자만 프로파일 100/100, 구독자만 1/100). 구독 쪽(탐지 노드, RViz, 다른
+  모듈, `ros2 topic hz`)은 기본 설정 그대로 받는다. 프로파일이 있는 프로세스와 없는 프로세스는 서로 발견·통신한다.
+- 따라서 **Ouster 드라이버(또는 bag 재생)를 `env.sh` 를 읽은 터미널에서 띄운다.** 드라이버를 다른 사람이 띄우는 시스템이면 그 PC 의
+  `/etc/environment` 에 `FASTRTPS_DEFAULT_PROFILES_FILE=<저장소>/lidar_perception_bringup/config/fastdds_large_messages.xml` 한 줄을 넣어
+  모든 프로세스가 읽게 하는 것이 가장 간단하다(재로그인 필요).
+- `input:=packets` 이면 패킷 노드가 점군을 발행하므로 `env.sh` 만으로 충분하고, 추가로 reliable QoS 로 발행한다(탐지 노드와 launch 가 같이
+  띄우는 RViz 는 `pointcloud_qos:=auto` 로 reliable 구독). organized / unorganized 점군 모두 x, y, z 필드만 쓰므로 그대로 호환된다.
 
 **다른 터미널에서 토픽이 안 보일 때.** `ros2 topic list` 는 백그라운드의 ros2 daemon 을 거친다. daemon 이 다른 환경(다른
 `ROS_DOMAIN_ID`, 예전 transport 환경변수)에서 먼저 떠 있으면 목록이 비거나 어긋난다. `ros2 daemon stop` 한 번 뒤 다시 실행한다.

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fast DDS profile for large point-cloud messages (ROS 2 Lyrical / Fast DDS 3).
+  The default shared-memory segment is 512 KB: a PointCloud2 above that falls back to fragmented UDP and, with best-effort
+  QoS, ~98 % of 0.7-2 MB messages are lost even between processes on the same PC (measured 2026-11-18). This profile raises
+  the shared-memory segment to 64 MB and the UDP socket buffers to 16 MB. It only has to be loaded by the PUBLISHER of the
+  large messages (the Ouster driver, ros2 bag play, ouster_packet_node): subscribers with default settings receive 100 %.
+  Processes with and without the profile still discover each other (same SHM + UDPv4 transports), unlike LARGE_DATA.
+  Loaded through FASTRTPS_DEFAULT_PROFILES_FILE (env.sh). For the vehicle's Ouster driver, launch it from a shell that
+  sourced env.sh, or set the variable system-wide (/etc/environment).
+-->
+<dds xmlns="http://www.eprosima.com">
+  <profiles>
+    <transport_descriptors>
+      <transport_descriptor>
+        <transport_id>shm_big</transport_id>
+        <type>SHM</type>
+        <segment_size>67108864</segment_size>
+        <maxMessageSize>67108864</maxMessageSize>
+      </transport_descriptor>
+      <transport_descriptor>
+        <transport_id>udp_big</transport_id>
+        <type>UDPv4</type>
+        <sendBufferSize>16777216</sendBufferSize>
+        <receiveBufferSize>16777216</receiveBufferSize>
+      </transport_descriptor>
+    </transport_descriptors>
+    <participant profile_name="big_participant" is_default_profile="true">
+      <rtps>
+        <userTransports>
+          <transport_id>shm_big</transport_id>
+          <transport_id>udp_big</transport_id>
+        </userTransports>
+        <useBuiltinTransports>false</useBuiltinTransports>
+      </rtps>
+    </participant>
+  </profiles>
+</dds>

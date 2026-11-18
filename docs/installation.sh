@@ -211,10 +211,12 @@ export CUDA_HOME=$CUDA_HOME_DIR
 export PATH=\$CUDA_HOME/bin:\$PATH
 export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\${LD_LIBRARY_PATH:-}
 export TORCH_CUDA_ARCH_LIST="$ARCH" CUMM_CUDA_ARCH_LIST="$ARCH"
-# DDS transports are left at the ROS 2 defaults on purpose: a process with FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA cannot even
-# discover processes without it, which would cut this pipeline off from the other modules on the vehicle. Fast DDS 3
-# (ROS 2 Lyrical) drops ~90 % of best-effort 0.7 MB point clouds between processes on the same PC; the pipeline therefore
-# uses RELIABLE QoS for the point cloud with the packets input (measured 2026-11-17: best-effort 6/100, reliable 100/100).
+# Large point clouds on Fast DDS 3: the default 512 KB shared-memory segment makes best-effort PointCloud2 messages above
+# that size fall back to fragmented UDP, where ~98 % are lost even on one PC. The profile below raises the segment to 64 MB.
+# It must be loaded by the PUBLISHER of the clouds (Ouster driver, ros2 bag play, ouster_packet_node); processes without it
+# still discover and talk to processes with it. FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA is NOT used: processes with and
+# without that variable cannot discover each other. (Measured 2026-11-18, 2 MB messages: default 1/100, profile 100/100.)
+export FASTRTPS_DEFAULT_PROFILES_FILE=$REPO/lidar_perception_bringup/config/fastdds_large_messages.xml
 EOT
 cp "$ENVF" "$VENV/perception_env.sh"
 log "8/8 done. Environment file: $ENVF"
