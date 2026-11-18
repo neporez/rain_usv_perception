@@ -124,14 +124,18 @@ RViz 에서는 Fixed Frame 이 `os_lidar` 인지, PointCloud2 표시의 Topic �
 **큰 점군 메시지 (Fast DDS 3 공유 메모리 한계).** ROS2 Lyrical 의 Fast DDS 3 는 공유 메모리 세그먼트가 기본 512 KB 라서 그보다 큰
 PointCloud2(유효 점만 담은 unorganized 점군도 2~5만 점이면 1~2 MB)는 UDP 조각 전송으로 넘어가고, best-effort 에서는 같은 PC 안에서도
 98 % 가 유실된다(측정, 2 MB 메시지: 기본 1/100). 해결은 세그먼트를 키운 프로파일 `lidar_perception_bringup/config/fastdds_large_messages.xml`
-(64 MB) 이고 `env.sh` 가 `FASTRTPS_DEFAULT_PROFILES_FILE` 로 읽어 들인다.
+(16 MB, 6 MB 점군까지 확인) 이고 `env.sh` 가 `FASTRTPS_DEFAULT_PROFILES_FILE` 로 읽어 들인다. 이 변수는 **프로세스 단위**라 `env.sh` 를
+읽은 셸에서 띄운 프로세스(= 이 파이프라인의 노드)에만 적용되고, 같은 PC 의 다른 모듈은 자기 설정 그대로 돈다.
 - 프로파일은 **큰 메시지를 발행하는 쪽**에만 있으면 된다(측정: 발행자만 프로파일 100/100, 구독자만 1/100). 구독 쪽(탐지 노드, RViz, 다른
   모듈, `ros2 topic hz`)은 기본 설정 그대로 받는다. 프로파일이 있는 프로세스와 없는 프로세스는 서로 발견·통신한다.
-- 따라서 **Ouster 드라이버(또는 bag 재생)를 `env.sh` 를 읽은 터미널에서 띄운다.** 드라이버를 다른 사람이 띄우는 시스템이면 그 PC 의
-  `/etc/environment` 에 `FASTRTPS_DEFAULT_PROFILES_FILE=<저장소>/lidar_perception_bringup/config/fastdds_large_messages.xml` 한 줄을 넣어
-  모든 프로세스가 읽게 하는 것이 가장 간단하다(재로그인 필요).
-- `input:=packets` 이면 패킷 노드가 점군을 발행하므로 `env.sh` 만으로 충분하고, 추가로 reliable QoS 로 발행한다(탐지 노드와 launch 가 같이
-  띄우는 RViz 는 `pointcloud_qos:=auto` 로 reliable 구독). organized / unorganized 점군 모두 x, y, z 필드만 쓰므로 그대로 호환된다.
+- **권장: `input:=packets`.** 드라이버는 작은 패킷(약 25 KB)만 발행하고 큰 점군은 우리 `ouster_packet_node` 가 발행하므로, 프로파일은
+  우리 프로세스에만 있으면 되고 다른 모듈이나 드라이버는 아무것도 바꾸지 않는다(추가로 reliable QoS 로 발행하고, 탐지 노드와 launch 가 띄우는
+  RViz 는 `pointcloud_qos:=auto` 로 reliable 구독).
+- 드라이버가 직접 PointCloud2 를 발행하는 구성을 써야 할 때만 **드라이버 프로세스**에 이 변수가 필요하다(유실은 발행 측에서 생기므로 구독 측
+  설정으로는 못 막는다). 드라이버를 띄우는 셸이나 서비스 유닛에 변수 한 줄을 주면 되고(그 프로세스에만 적용), 또는 드라이버를
+  `use_system_default_qos:=true`(reliable) 로 띄우고 `pointcloud_qos:=reliable` 을 주는 방법도 있다. 두 방법 모두 다른 모듈에는 영향이 없다.
+- bag 재생(`ros2 bag play`)도 발행자이므로 `env.sh` 를 읽은 터미널에서 돌린다. organized / unorganized 점군 모두 x, y, z 필드만 쓰므로
+  그대로 호환된다.
 
 **다른 터미널에서 토픽이 안 보일 때.** `ros2 topic list` 는 백그라운드의 ros2 daemon 을 거친다. daemon 이 다른 환경(다른
 `ROS_DOMAIN_ID`, 예전 transport 환경변수)에서 먼저 떠 있으면 목록이 비거나 어긋난다. `ros2 daemon stop` 한 번 뒤 다시 실행한다.

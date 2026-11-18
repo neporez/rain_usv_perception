@@ -212,9 +212,10 @@ export PATH=\$CUDA_HOME/bin:\$PATH
 export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\${LD_LIBRARY_PATH:-}
 export TORCH_CUDA_ARCH_LIST="$ARCH" CUMM_CUDA_ARCH_LIST="$ARCH"
 # Large point clouds on Fast DDS 3: the default 512 KB shared-memory segment makes best-effort PointCloud2 messages above
-# that size fall back to fragmented UDP, where ~98 % are lost even on one PC. The profile below raises the segment to 64 MB.
-# It must be loaded by the PUBLISHER of the clouds (Ouster driver, ros2 bag play, ouster_packet_node); processes without it
-# still discover and talk to processes with it. FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA is NOT used: processes with and
+# that size fall back to fragmented UDP, where ~98 % are lost even on one PC. The profile below raises the segment to 16 MB.
+# The variable is per process (only shells that source env.sh): other modules on the PC are not affected. It must be loaded
+# by the PUBLISHER of the clouds -- with input:=packets that is our own ouster_packet_node; only a driver that publishes
+# PointCloud2 itself needs it too. Processes without it still discover and talk to processes with it. FASTDDS_BUILTIN_TRANSPORTS=LARGE_DATA is NOT used: processes with and
 # without that variable cannot discover each other. (Measured 2026-11-18, 2 MB messages: default 1/100, profile 100/100.)
 export FASTRTPS_DEFAULT_PROFILES_FILE=$REPO/lidar_perception_bringup/config/fastdds_large_messages.xml
 EOT

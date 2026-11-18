@@ -6,8 +6,10 @@
   the shared-memory segment to 64 MB and the UDP socket buffers to 16 MB. It only has to be loaded by the PUBLISHER of the
   large messages (the Ouster driver, ros2 bag play, ouster_packet_node): subscribers with default settings receive 100 %.
   Processes with and without the profile still discover each other (same SHM + UDPv4 transports), unlike LARGE_DATA.
-  Loaded through FASTRTPS_DEFAULT_PROFILES_FILE (env.sh). For the vehicle's Ouster driver, launch it from a shell that
-  sourced env.sh, or set the variable system-wide (/etc/environment).
+  Loaded through FASTRTPS_DEFAULT_PROFILES_FILE (env.sh). The variable is per process: only processes started from a shell
+  that sourced env.sh use this profile; every other module on the PC keeps its own (default) settings. With input:=packets
+  the only large-cloud publisher is our own ouster_packet_node, so nothing outside this pipeline is touched. Only if the
+  Ouster driver itself must publish PointCloud2 does the driver's process need the variable (its launch shell / service unit).
 -->
 <dds xmlns="http://www.eprosima.com">
   <profiles>
@@ -15,8 +17,8 @@
       <transport_descriptor>
         <transport_id>shm_big</transport_id>
         <type>SHM</type>
-        <segment_size>67108864</segment_size>
-        <maxMessageSize>67108864</maxMessageSize>
+        <segment_size>16777216</segment_size>
+        <maxMessageSize>16777216</maxMessageSize>
       </transport_descriptor>
       <transport_descriptor>
         <transport_id>udp_big</transport_id>
