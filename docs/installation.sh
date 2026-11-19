@@ -23,6 +23,8 @@
 #   SKIP_WS_BUILD=1                skip colcon build
 # =====================================================================================================================
 set -euo pipefail
+# any failing command aborts (set -e); say where, instead of exiting silently
+trap 'printf "\n\033[1;31m[error] installation.sh stopped at line %s: %s\033[0m\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="${VENV:-$HOME/venv/lidar_detection}"
@@ -58,9 +60,25 @@ log "0/8 checks  (repo $REPO, workspace $WS)"
 . /etc/os-release; [ "${VERSION_ID}" = "26.04" ] || echo "[warn] tested on Ubuntu 26.04, this is ${PRETTY_NAME}"
 [ -f "/opt/ros/$ROS_DISTRO/setup.bash" ] || die "ROS 2 $ROS_DISTRO not found under /opt/ros (install ros-${ROS_DISTRO}-desktop first)"
 command -v nvidia-smi >/dev/null || die "nvidia-smi not found: install the NVIDIA driver (>= 580 for CUDA 13) first"
-DRV="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1)"
-[ "${DRV%%.*}" -ge 580 ] || die "NVIDIA driver $DRV is too old for CUDA 13 (need >= 580)"
-ARCH="${ARCH:-$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -1)}"
+DRV="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || true)"
+[ -n "$DRV" ] || die "nvidia-smi gives no driver version (output: $(nvidia-smi 2>&1 | head -3 | tr '\n' ' '))"
+[ "${DRV%%.*}" -ge 580 ] 2>/dev/null || die "NVIDIA driver $DRV is too old for CUDA 13 (need >= 580)"
+# compute capability: nvidia-smi 'compute_cap' (driver >= 510); otherwise from the GPU name; otherwise ARCH=<x.y> on the command line
+if [ -z "${ARCH:-}" ]; then
+  ARCH="$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -1 || true)"
+  case "$ARCH" in [0-9].[0-9]|[0-9][0-9].[0-9]) ;; *) ARCH="" ;; esac
+fi
+if [ -z "$ARCH" ]; then
+  GPU_NAME="$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1 || true)"
+  case "$GPU_NAME" in
+    *"RTX 20"*|*"GTX 16"*|*"T4"*|*"Quadro RTX"*|*"RTX 8000"*|*"RTX 6000"*) ARCH="7.5" ;;
+    *"RTX 30"*|*"A10"*|*"A40"*|*"A2"*) ARCH="8.6" ;;
+    *"RTX 40"*|*"L4"*|*"L40"*) ARCH="8.9" ;;
+    *"A100"*|*"A30"*) ARCH="8.0" ;;
+    *"H100"*) ARCH="9.0" ;;
+  esac
+  [ -n "$ARCH" ] || die "cannot detect the GPU compute capability for '$GPU_NAME': run  ARCH=8.6 bash docs/installation.sh  (RTX 20: 7.5, RTX 30: 8.6, RTX 40: 8.9)"
+fi
 export TORCH_CUDA_ARCH_LIST="$ARCH" CUMM_CUDA_ARCH_LIST="$ARCH"
 command -v python3 >/dev/null || die "python3 missing"
 python3 -c 'import venv' 2>/dev/null || die "python3-venv missing: sudo apt install python3-venv python3-dev"
