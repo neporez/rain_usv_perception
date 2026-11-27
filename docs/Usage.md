@@ -104,11 +104,24 @@ ros2 run lidar_perception_detection play_bag <bag 폴더> --file 2 -- --loop
 |---|---|
 | `detection.yaml` | `pointcloud_topic`(기본 `/dev/lidar/points`), `pointcloud_qos_reliability`(드라이버가 best_effort 면 best_effort), `ckpt_path`(모델 교체), `score_threshold`(기본 0.3; 오탐이 많으면 0.4~0.5) |
 | `ouster_packets.yaml` | `packets_topic`, `metadata_topic`, `metadata_path`(비우면 패키지의 `config/ouster_metadata.json`) |
-| `tracker.yaml` | `gnss_topic`(10 Hz 이상 pose 토픽), `pose_max_age_sec`, `heading_convention`(pose yaw 가 진북 기준 시계방향이면 `ned`) |
+| `tracker.yaml` | `gnss_topic`(10 Hz 이상 pose 토픽), `pose_max_age_sec`, `heading_convention`(pose yaw 가 진북 기준 시계방향이면 `ned`), `output_rate_hz`(ObjectsDetected 발행 주기 상한, 0 = 프레임마다) |
 | `viz.yaml` | 마커 색·선 두께·라벨 |
 
 출력 토픽: 탐지 `/detection/objects` (Object3DArray, 9자유도 상자), 추적 `/alg1/dl_pst_detection` (detect_msgs/ObjectsDetected),
 시각화 `/tracking/objects_viz`, `/viz/tracks`, `/viz/detections`.
+
+**출력 주기 제한.** 추적 결과 `/alg1/dl_pst_detection`(ObjectsDetected)는 기본으로 입력 프레임마다(10 Hz) 나간다. 받는 쪽이 더 느린 주기를
+원하면 launch 인자 `output_rate_hz` 로 상한을 준다 (추적은 그대로 매 프레임 수행되고 발행만 솎아내므로 ID·속도는 연속; 시각화 토픽은 영향 없음):
+```bash
+ros2 launch lidar_perception_bringup perception.launch.py input:=packets output_rate_hz:=2.0       # 0.5 s 간격
+ros2 launch lidar_perception_bringup perception_viz.launch.py input:=packets output_rate_hz:=1.0   # 1 Hz
+```
+`tracker.yaml` 의 `output_rate_hz` 로 기본값을 바꿀 수도 있다. 간격은 LiDAR 스탬프 기준이라 bag 재생(`--rate`)에서도 같은 비율로 동작한다.
+
+**메시지 패키지 중복.** `ros2_message_packages/` 안의 메시지 패키지(`detect_msgs`, `gnss_msgs`, `ouster-sensor-msgs` 등)는 KRISO 통합
+워크스페이스에 이미 같은 이름으로 있을 수 있다. `installation.sh` 는 워크스페이스에 같은 이름의 패키지가 따로 있으면 이 저장소의 복사본에
+`COLCON_IGNORE` 를 만들어 건너뛰므로 충돌 없이 빌드된다. 손으로 빌드할 때 "duplicate package" 오류가 나면 같은 식으로 `touch
+ros2_message_packages/<pkg>/COLCON_IGNORE` 하면 된다.
 
 ## 4. 동작 확인
 

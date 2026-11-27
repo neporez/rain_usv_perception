@@ -54,12 +54,18 @@ class TrackingNode(Node):
         self.declare_parameter("pose_time_offset_sec", 0.0)        # added to the LiDAR stamp before the lookup
         self.declare_parameter("heading_convention", "ned")        # 'ned': Pose.yaw = deg clockwise from north (message spec) | 'enu'
         self.declare_parameter("tracker_config_path", "tracker/config/multi_object_tracker.yaml")
+        # ObjectsDetected(output_topic) 발행 주기 상한 [Hz]. 0 = 입력 프레임마다 발행(기본). 예: 2.0 -> 0.5 s 간격으로만 발행.
+        # 추적 자체는 모든 프레임에서 수행되고(ID/속도 연속), 발행만 솎아낸다. 시각화 토픽(viz_output_topic)은 영향 없음.
+        self.declare_parameter("output_rate_hz", 0.0)
 
         detection_topic = self.get_parameter("detection_topic").value
         output_topic = self.get_parameter("output_topic").value
         viz_output_topic = self.get_parameter("viz_output_topic").value
         gnss_topic = self.get_parameter("gnss_topic").value
         tracker_config_path = self.get_parameter("tracker_config_path").value
+        self.output_rate_hz = float(self.get_parameter("output_rate_hz").value)
+        ## 마지막으로 ObjectsDetected 를 발행한 LiDAR 시각 [s] (output_rate_hz > 0 일 때의 발행 간격 기준)
+        self._last_output_time = None
 
         ## ROS ↔ Tracker3D 어댑터
         self.tracker = TrackerAdapter(cfg_path=tracker_config_path)
@@ -86,6 +92,23 @@ class TrackingNode(Node):
         self.pub = self.create_publisher(ObjectsDetected, output_topic, 10)
         ## 시각화용 발행자 (TrackedObject3DArray 포맷)
         self.pub_viz = self.create_publisher(TrackedObject3DArray, viz_output_topic, 10)
+        if self.output_rate_hz > 0:
+            self.get_logger().info(f"ObjectsDetected output limited to {self.output_rate_hz:g} Hz (tracking still runs every frame)")
+
+    def _output_due(self, stamp_sec: float) -> bool:
+        """!
+        @brief output_rate_hz 에 따라 이번 프레임의 ObjectsDetected 를 발행할지 결정 (LiDAR 스탬프 기준, bag 재생에도 동일).
+        @param stamp_sec 탐지 메시지(= LiDAR 프레임)의 시각 [s].
+        @return True 면 발행. output_rate_hz <= 0 이면 항상 True. 스탬프가 뒤로 가면(bag 되감기) 간격을 초기화한다.
+        """
+        if self.output_rate_hz <= 0:
+            return True
+        period = 1.0 / self.output_rate_hz
+        last = self._last_output_time
+        if last is None or stamp_sec < last or stamp_sec - last >= period - 1e-3:
+            self._last_output_time = stamp_sec
+            return True
+        return False
 
     def on_gnss(self, msg: Pose):
         """!
@@ -103,6 +126,7 @@ class TrackingNode(Node):
            버퍼 밖으로 pose_max_age_sec 이상 벗어나면(pose 끊김, 시계 불일치) 외삽하지 않고 프레임을 건너뛴다.
         3. **추적**: TrackerAdapter.update()로 프레임 간 ID/속도가 채워진 결과를 얻는다.
         4. **메시지 변환 및 발행**: 같은 추적 결과를 (a) 시각화용 TrackedObject3DArray와 (b) 다른 시스템 호환용
+           (ObjectsDetected 는 output_rate_hz > 0 이면 그 주기로만 발행, 시각화 토픽은 매 프레임)
            ObjectsDetected(detect_msgs) 두 포맷으로 동시에 채워 각각 발행한다. ObjectsDetected는 원래 픽셀 좌표 기반
            탐지 스키마라서, `x/y/w/h` 필드에 실제로는 로컬 좌표(m)를 정수로 캐스팅해 채워넣는다 — 필드명이 픽셀을
            뜻하지만 실제 단위는 미터임에 주의.
@@ -190,7 +214,8 @@ class TrackingNode(Node):
 
             out_msg.d_object.append(obj)
 
-        self.pub.publish(out_msg)
+        if self._output_due(query_time):
+            self.pub.publish(out_msg)
         self.pub_viz.publish(viz_msg)
 
     def object3d_array_to_boxes(self, msg: Object3DArray):

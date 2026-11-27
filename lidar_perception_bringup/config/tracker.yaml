@@ -4,6 +4,7 @@ lidar_tracking_node:
     output_topic: "/alg1/dl_pst_detection"
     tracker_config_path: "tracker/config/multi_object_tracker.yaml"
     viz_output_topic: "/tracking/objects_viz"
+    output_rate_hz: 0.0              # ObjectsDetected(output_topic) 발행 주기 상한 [Hz]; 0 = 프레임마다(10 Hz). launch 인자 output_rate_hz 가 이 값을 덮어씀. 추적은 항상 매 프레임, 시각화 토픽은 영향 없음
 
     # ego pose (gnss_msgs/msg/Pose). 10 Hz hemisphere GNSS = /system/gnss/pose; /dev/spatial_fog_dual/pose = 100 Hz INS.
     # The LiDAR frame pose is INTERPOLATED between the two nearest pose samples (no velocity extrapolation),

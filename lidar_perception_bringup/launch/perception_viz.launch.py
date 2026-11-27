@@ -21,11 +21,12 @@ def generate_launch_description():
     sim_arg = DeclareLaunchArgument('use_sim_time', default_value='false')
     meta_arg = DeclareLaunchArgument('ouster_metadata_path', default_value='')
     qos_arg = DeclareLaunchArgument('pointcloud_qos', default_value='auto')
+    rate_arg = DeclareLaunchArgument('output_rate_hz', default_value='0.0', description="ObjectsDetected publish rate limit in Hz; 0 = every frame")
     use_sim_time = {'use_sim_time': LaunchConfiguration('use_sim_time')}
 
     perception_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, 'launch', 'perception.launch.py')),
-        launch_arguments={'input': LaunchConfiguration('input'), 'use_sim_time': LaunchConfiguration('use_sim_time'), 'ouster_metadata_path': LaunchConfiguration('ouster_metadata_path'), 'pointcloud_qos': LaunchConfiguration('pointcloud_qos')}.items(),
+        launch_arguments={'input': LaunchConfiguration('input'), 'use_sim_time': LaunchConfiguration('use_sim_time'), 'ouster_metadata_path': LaunchConfiguration('ouster_metadata_path'), 'pointcloud_qos': LaunchConfiguration('pointcloud_qos'), 'output_rate_hz': LaunchConfiguration('output_rate_hz')}.items(),
     )
 
     viz_config = os.path.join(bringup_share, 'config', 'viz.yaml')
@@ -48,7 +49,7 @@ def generate_launch_description():
         arguments=['-d', rviz_config],
     )
 
-    return LaunchDescription([input_arg, sim_arg, meta_arg, qos_arg, 
+    return LaunchDescription([input_arg, sim_arg, meta_arg, qos_arg, rate_arg,
         perception_launch,
         viz_node,
         rviz_node,
