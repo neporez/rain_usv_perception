@@ -1,7 +1,7 @@
 ## @file
-#  @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요).
+#  @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요). 인자: input(pointcloud | packets), use_sim_time, ouster_metadata_path, pointcloud_qos.
 
-"""! @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요). """
+"""! @brief detection + RViz2 시각화만 실행 (추적 없음, GNSS 불필요). 인자: input(pointcloud | packets; packets 이면 ouster_packet_node 추가), use_sim_time, ouster_metadata_path, pointcloud_qos. """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription

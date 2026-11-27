@@ -82,6 +82,9 @@ ros2 launch lidar_perception_bringup perception.launch.py
 
 # Detection + Tracking + RViz 시각화
 ros2 launch lidar_perception_bringup perception_viz.launch.py
+
+# ObjectsDetected(/alg1/dl_pst_detection) 발행 주기 상한 [Hz] (perception / perception_viz; 0 = 매 프레임, 추적·시각화는 매 프레임 유지)
+ros2 launch lidar_perception_bringup perception.launch.py input:=packets output_rate_hz:=2.0
 ```
 
 ### 주요 파라미터
@@ -92,7 +95,7 @@ ros2 launch lidar_perception_bringup perception_viz.launch.py
 |---|---|
 | `ouster_packets.yaml` | `packets_topic`, `metadata_topic`, `metadata_path`, `stamp_mode`(driver = 드라이버와 같은 시각 규약) |
 | `detection.yaml` | `pointcloud_topic`, `pointcloud_qos_reliability`, `model_config_path`(기본 `cfgs/kriso_models/kriso_voxelnext_deploy.yaml`), `ckpt_path`(기본 `cfgs/ckpt/voxelnext_kriso_real_epoch_80.pth`, git 미포함), `score_threshold` |
-| `tracker.yaml` | `detection_topic`, `gnss_topic`(기본 `/dev/gnss/hemisphere/pose`, 10 Hz), `pose_time_source`, `pose_max_age_sec`, `heading_convention`, `tracker_config_path` |
+| `tracker.yaml` | `detection_topic`, `gnss_topic`(기본 `/dev/gnss/hemisphere/pose`, 10 Hz), `pose_time_source`, `pose_max_age_sec`, `heading_convention`, `tracker_config_path`, `output_rate_hz`(ObjectsDetected 발행 주기 상한, 0 = 매 프레임; launch 인자로도 지정) |
 | `viz.yaml` | `marker_publisher_node`: `tracking_viz_topic`, `output_topic` / `detection_marker_node`: `detection_topic`, `output_topic`, `min_score`, `line_width`, `color_rgb`, `show_heading`, `show_label` |
 
 ---

@@ -1,7 +1,7 @@
 ## @file
-#  @brief perception.launch.py(탐지+추적)에 시각화(marker_publisher_node)와 RViz2 까지 더해 실행.
+#  @brief perception.launch.py(탐지+추적)에 시각화(marker_publisher_node)와 RViz2 까지 더해 실행. 인자: input(pointcloud | packets), use_sim_time, ouster_metadata_path, pointcloud_qos, output_rate_hz.
 
-"""! @brief perception.launch.py(탐지+추적)에 시각화(marker_publisher_node)와 RViz2 까지 더해 실행. """
+"""! @brief perception.launch.py(탐지+추적)에 시각화(marker_publisher_node)와 RViz2 까지 더해 실행. 인자: input(pointcloud | packets), use_sim_time, ouster_metadata_path, pointcloud_qos, output_rate_hz. """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -14,6 +14,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     """!
     @brief perception.launch.py 를 포함하고 marker_publisher_node 와 rviz2(lidar_perception_viz.rviz)를 추가로 구성.
+    인자 input / use_sim_time / ouster_metadata_path / pointcloud_qos / output_rate_hz(ObjectsDetected 발행 주기 상한 [Hz], 0 = 프레임마다)는 perception.launch.py 로 그대로 전달하며, input:=packets 이면 RViz 가 reliable 점군 설정을 쓴다.
     @return detection + tracking + marker_publisher_node + rviz2 를 담은 LaunchDescription.
     """
     bringup_share = get_package_share_directory('lidar_perception_bringup')

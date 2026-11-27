@@ -26,9 +26,15 @@ class TrackingNode(Node):
     pose를 PoseCache 버퍼에서 **보간**해 로컬→글로벌 변환 행렬을 만들고, TrackerAdapter로
     프레임 간 ID 추적을 수행한다. 결과는 두 가지 포맷으로 동시에 발행한다.
 
+    파라미터(lidar_perception_bringup/config/tracker.yaml, launch 인자로도 설정):
+    - detection_topic / gnss_topic / pose_time_source / pose_max_age_sec / heading_convention / tracker_config_path
+    - output_rate_hz: ObjectsDetected(/alg1/dl_pst_detection) 발행 주기 상한 [Hz]. 0(기본) = 매 프레임 발행.
+      추적 자체는 매 프레임 수행되고 발행만 LiDAR 스탬프 기준으로 솎아내므로 ID·속도는 연속이며, 시각화 토픽은 영향이 없다.
+
     주요 구성:
     - on_gnss(): pose 수신 시 PoseCache 버퍼 갱신.
     - on_detections(): 탐지 수신 시 추적 수행 및 결과 발행 (메인 처리).
+    - _output_due(): output_rate_hz 에 따른 발행 여부 판단.
     - object3d_array_to_boxes(): Object3DArray → (N,7) numpy 배열 변환.
     """
 

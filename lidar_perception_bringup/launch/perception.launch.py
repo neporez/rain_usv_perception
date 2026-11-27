@@ -1,7 +1,7 @@
 ## @file
-#  @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외).
+#  @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외). 인자: input(pointcloud | packets), use_sim_time, ouster_metadata_path, pointcloud_qos, output_rate_hz.
 
-"""! @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외). """
+"""! @brief detection + tracking 을 함께 실행하는 launch 파일 (시각화 제외). 인자: input(pointcloud | packets), use_sim_time, ouster_metadata_path, pointcloud_qos, output_rate_hz(ObjectsDetected 발행 주기 상한 [Hz], 0 = 프레임마다). """
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
